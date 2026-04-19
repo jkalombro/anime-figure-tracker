@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  
+  /* Shared Base Palette - Solar Gallery */
+  --color-accent-primary: #ff4e00;
+  --color-accent-soft: #ff8c42;
+  --color-accent-red: #e63946;
+
+  /* Sophisticated Palette Variables */
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-card: var(--bg-card);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-border-subtle: var(--border-subtle);
+
+  /* Brand Remapping for Legacy Components and Modal/Loading */
+  --color-brand-50: var(--bg-card);
+  --color-brand-100: var(--bg-card);
+  --color-brand-200: var(--border-subtle);
+  --color-brand-300: var(--text-muted);
+  --color-brand-400: var(--accent-soft);
+  --color-brand-500: var(--accent-primary);
+  --color-brand-600: var(--accent-red);
+  --color-brand-700: var(--text-muted);
+  --color-brand-800: var(--bg-deep);
+  --color-brand-900: var(--bg-surface);
+  --color-brand-950: var(--bg-deep);
+}
+
+@layer base {
+  :root {
+    --bg-deep: #fffaf9;
+    --bg-surface: #ffffff;
+    --bg-card: #fff3f0;
+    --text-main: #2d100b;
+    --text-muted: #8c716d;
+    --border-subtle: rgba(255, 78, 0, 0.1);
+  }
+
+  .dark {
+    --bg-deep: #0a0502;
+    --bg-surface: #1a0a0a;
+    --bg-card: #2d1515;
+    --text-main: #fff5f2;
+    --text-muted: #b39a94;
+    --border-subtle: rgba(255, 78, 0, 0.2);
+  }
+
+  body {
+    @apply bg-bg-deep text-text-main transition-colors duration-300;
+  }
+
+  button, a {
+    @apply cursor-pointer;
+  }
+}
+
+.glass {
+  @apply backdrop-blur-xl bg-bg-surface/60 border border-border-subtle shadow-2xl;
+}
+
+.card-sophisticated {
+  @apply bg-bg-card border border-border-subtle rounded-3xl p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-accent-primary/5 hover:-translate-y-1;
+}
+
+.surface-container {
+  @apply bg-bg-surface border border-border-subtle rounded-[2.5rem] p-8 shadow-xl shadow-black/5;
+}
+
+.btn-primary-sophisticated {
+  @apply bg-gradient-to-br from-accent-primary to-accent-red hover:brightness-110 text-white rounded-2xl px-8 py-3 font-bold transition-all active:scale-95 shadow-lg shadow-accent-primary/20;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-brand-800 rounded-full;
+}
+

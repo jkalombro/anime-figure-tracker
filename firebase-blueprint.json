@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and metadata",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName"]
+    },
+    "Maker": {
+      "title": "Maker",
+      "description": "Figure manufacturer",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "addedBy": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Anime": {
+      "title": "Anime",
+      "description": "Source anime series",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "addedBy": { "type": "string" }
+      },
+      "required": ["title"]
+    },
+    "ActionFigure": {
+      "title": "Action Figure",
+      "description": "Action figure record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "characterName": { "type": "string" },
+        "maker": { "type": "string" },
+        "figureLine": { "type": "string" },
+        "scale": { "type": "string", "enum": ["1/1", "1/2", "1/4", "1/6", "1/8"] },
+        "totalPrice": { "type": "number" },
+        "shippingCost": { "type": "number" },
+        "sourceAnime": { "type": "string" },
+        "seasonArc": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "characterName", "maker", "totalPrice", "sourceAnime"]
+    },
+    "Preorder": {
+      "title": "Preorder",
+      "description": "Preordered figure record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "figureName": { "type": "string" },
+        "description": { "type": "string" },
+        "seller": { "type": "string" },
+        "datePreordered": { "type": "string", "format": "date" },
+        "estimatedArrival": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "figureName", "datePreordered", "estimatedArrival"]
+    },
+    "Equipment": {
+      "title": "Equipment",
+      "description": "Display equipment like cabinets and shelves",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "description": { "type": "string" },
+        "totalPrice": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "description", "totalPrice"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/makers/{makerId}": {
+      "schema": "Maker",
+      "description": "Global collection of figure manufacturers"
+    },
+    "/anime/{animeId}": {
+      "schema": "Anime",
+      "description": "Global collection of anime series"
+    },
+    "/actionFigures/{figureId}": {
+      "schema": "ActionFigure",
+      "description": "Collection of action figures"
+    },
+    "/preorders/{preorderId}": {
+      "schema": "Preorder",
+      "description": "Collection of preorders"
+    },
+    "/equipments/{equipmentId}": {
+      "schema": "Equipment",
+      "description": "Collection of equipment"
+    }
+  }
+}
