@@ -55,7 +55,7 @@ export function DashboardOverview() {
     };
   }, [user]);
 
-  const totalExpenses = stats.figureCost + stats.equipmentCost;
+  const totalExpenses = stats.figureCost + stats.equipmentCost + stats.shippingCost;
 
   const cardVariants = {
     hidden: { opacity: 0, scale: 0.9, y: 20 },
@@ -85,7 +85,13 @@ export function DashboardOverview() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
         {[
           { icon: TrendingUp, label: "Overall Expenses", value: totalExpenses, sub: `${stats.figures + stats.preorders} total entries` },
-          { icon: Package, label: "Figure Expenses", value: stats.figureCost, sub: `${stats.figures} tracked items` },
+          { 
+            icon: Package, 
+            label: "Figure Expenses", 
+            value: stats.figureCost, 
+            extra: stats.shippingCost > 0 ? ` (+ ${formatCurrency(stats.shippingCost)})` : '',
+            sub: `${stats.figures} tracked items` 
+          },
           { icon: Shield, label: "Equipment Expenses", value: stats.equipmentCost, sub: `${stats.equipment} units documented` }
         ].map((item, i) => (
           <motion.div
@@ -101,9 +107,16 @@ export function DashboardOverview() {
               </div>
               {item.label}
             </div>
-            <p className="text-3xl font-black text-text-main tracking-tighter">
-              {formatCurrency(item.value)}
-            </p>
+            <div className="flex items-baseline gap-1 flex-wrap">
+              <p className="text-3xl font-black text-text-main tracking-tighter">
+                {formatCurrency(item.value)}
+              </p>
+              {'extra' in item && (
+                <span className="text-xs font-bold text-accent-soft ml-1">
+                  {item.extra}
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-text-muted mt-3 font-semibold uppercase tracking-wider">{item.sub}</p>
           </motion.div>
         ))}

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadImage } from '../lib/cloudinary';
-import { Camera, Check, User } from 'lucide-react';
+import { Camera, Check, User, LogOut } from 'lucide-react';
 import { LoadingSpinner } from '../components/Loading';
 
 export function SettingsPage() {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateUserProfile, logout } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -86,7 +86,7 @@ export function SettingsPage() {
             <input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full h-14 bg-white border border-border-subtle rounded-2xl px-6 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all font-bold"
+              className="w-full h-14 bg-bg-surface border border-border-subtle rounded-2xl px-6 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all font-bold"
               placeholder="Your handle..."
               required
               autoComplete="off"
@@ -95,7 +95,7 @@ export function SettingsPage() {
 
           <button
             disabled={loading || displayName === user?.displayName || !displayName.trim()}
-            className="w-full h-16 bg-gradient-to-br from-accent-primary to-accent-red text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-accent-primary/20 disabled:opacity-50"
+            className="w-full h-16 bg-gradient-to-br from-accent-primary to-accent-soft text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-accent-primary/20 disabled:opacity-50"
           >
             {loading ? <LoadingSpinner variant="white" /> : success ? <><Check className="w-5 h-5" /> Updated</> : 'Update Profile'}
           </button>

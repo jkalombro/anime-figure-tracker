@@ -4,10 +4,13 @@ import { Sun, Moon } from 'lucide-react';
 export function useDarkMode() {
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' || 
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        return savedTheme === 'dark';
+      }
+      return true; // Default to dark mode if no preference saved
     }
-    return false;
+    return true;
   });
 
   useEffect(() => {

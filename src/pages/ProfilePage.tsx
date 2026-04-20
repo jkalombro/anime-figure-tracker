@@ -197,7 +197,7 @@ export function ProfilePage() {
 
       <footer className="mt-40 text-center py-12 border-t border-border-subtle">
         <p className="text-text-muted/30 text-[10px] font-bold uppercase tracking-[0.4em] flex items-center justify-center gap-2">
-           Showcased on <span className="text-accent-soft">Figdex</span>
+           Showcased on <span className="text-accent-soft">KuraDex</span>
         </p>
       </footer>
     </div>

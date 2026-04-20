@@ -155,7 +155,7 @@ export function EquipmentsPage() {
               <input
                 {...register('description', { required: true })}
                 autoComplete="off"
-                className="w-full h-12 bg-white border border-border-subtle rounded-2xl px-4 text-text-main outline-none focus:ring-1 focus:ring-accent-primary"
+                className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl px-4 text-text-main outline-none focus:ring-1 focus:ring-accent-primary"
                 placeholder="e.g. Detolf Glass Cabinet"
               />
             </div>
@@ -165,7 +165,7 @@ export function EquipmentsPage() {
                 type="number" step="0.01"
                 {...register('totalPrice', { required: true })}
                 autoComplete="off"
-                className="w-full h-12 bg-white border border-border-subtle rounded-2xl px-4 text-text-main outline-none focus:ring-1 focus:ring-accent-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-bold"
+                className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl px-4 text-text-main outline-none focus:ring-1 focus:ring-accent-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-bold"
                 placeholder="0.00"
               />
             </div>

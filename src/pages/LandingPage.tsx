@@ -33,7 +33,7 @@ export function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden flex flex-col items-center justify-center p-6 sm:p-12">
       {/* Dynamic Solar Background */}
-      <div className="absolute top-0 left-0 w-full h-full -z-10 bg-[radial-gradient(circle_at_50%_50%,_rgba(255,100,0,0.08)_0%,_transparent_70%)]" />
+      <div className="absolute top-0 left-0 w-full h-full -z-10 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.08)_0%,_transparent_70%)]" />
       
       {/* Floating Blobs and Flares */}
       <motion.div
@@ -52,7 +52,7 @@ export function LandingPage() {
           opacity: [0.2, 0.05, 0.2],
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-[-15%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-accent-red blur-[150px] -z-10"
+        className="absolute bottom-[-15%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-accent-soft blur-[150px] -z-10"
       />
 
       {/* Interactive Particles */}
@@ -151,10 +151,10 @@ export function LandingPage() {
           className="flex flex-col sm:flex-row items-center justify-center gap-8"
         >
           <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(255, 78, 0, 0.2)" }}
+            whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.2)" }}
             whileTap={{ scale: 0.95 }}
             onClick={login}
-            className="w-full sm:w-auto px-12 py-5 bg-accent-primary text-white rounded-2xl font-black text-xl flex items-center justify-center gap-4 transition-all shadow-xl shadow-accent-primary/10 border-b-4 border-accent-red active:border-b-0"
+            className="w-full sm:w-auto px-12 py-5 bg-accent-primary text-white rounded-2xl font-black text-xl flex items-center justify-center gap-4 transition-all shadow-xl shadow-accent-primary/10"
           >
             <LogIn className="w-6 h-6" />
             ENTER GALLERY
@@ -188,7 +188,7 @@ export function LandingPage() {
       </div>
 
       <footer className="mt-24 text-[11px] uppercase tracking-[0.2em] text-text-muted/40">
-        © {new Date().getFullYear()} — Figdex Gallery
+        © {new Date().getFullYear()} — KuraDex Gallery
       </footer>
     </div>
   );

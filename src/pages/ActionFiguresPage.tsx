@@ -20,6 +20,7 @@ interface FigureForm {
   sourceAnime: string;
   seasonArc?: string;
   images?: FileList;
+  isGifted: boolean;
 }
 
 export function ActionFiguresPage() {
@@ -91,6 +92,7 @@ export function ActionFiguresPage() {
         totalPrice: Number(data.totalPrice),
         shippingCost: Number(data.shippingCost) || 0,
         sourceAnime: data.sourceAnime.trim(),
+        isGifted: data.isGifted,
         imageUrls,
         createdAt: editingFigure ? editingFigure.createdAt : serverTimestamp(),
       };
@@ -141,6 +143,7 @@ export function ActionFiguresPage() {
       totalPrice: figure.totalPrice,
       shippingCost: figure.shippingCost,
       sourceAnime: figure.sourceAnime,
+      isGifted: figure.isGifted || false,
     });
   };
 
@@ -173,7 +176,7 @@ export function ActionFiguresPage() {
             >
               {/* Image Header Style */}
               <div 
-                className="relative aspect-video overflow-hidden bg-white border-b border-border-subtle cursor-pointer"
+                className="relative aspect-video overflow-hidden bg-bg-surface border-b border-border-subtle cursor-pointer"
                 onClick={() => {
                   setSelectedGalleryImages(figure.imageUrls || []);
                   setCurrentGalleryIndex(0);
@@ -189,6 +192,13 @@ export function ActionFiguresPage() {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-bg-card/30">
                     <Camera className="w-8 h-8 text-text-muted/30" />
+                  </div>
+                )}
+
+                {figure.isGifted && (
+                  <div className="absolute top-3 left-3 px-3 py-1 bg-accent-soft/90 backdrop-blur-md rounded-full text-white text-[10px] font-black uppercase tracking-widest shadow-lg border border-white/20 flex items-center gap-1.5 animate-pulse">
+                    <Bookmark className="w-3 h-3 fill-white" />
+                    Gift
                   </div>
                 )}
                 
@@ -208,6 +218,12 @@ export function ActionFiguresPage() {
                     </h3>
                     <div className="flex items-center gap-1.5 text-text-muted mt-0.5">
                       <p className="text-xs font-medium truncate italic">{figure.sourceAnime}</p>
+                      {figure.scale && (
+                        <>
+                          <span className="w-1 h-1 rounded-full bg-text-muted/30" />
+                          <span className="text-[10px] font-bold text-accent-soft">{figure.scale}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -269,7 +285,7 @@ export function ActionFiguresPage() {
         className="md:max-w-3xl"
       >
         <div className="relative group min-h-[400px] flex flex-col gap-6">
-          <div className="relative aspect-square md:aspect-video rounded-3xl overflow-hidden bg-white border border-border-subtle">
+          <div className="relative aspect-square md:aspect-video rounded-3xl overflow-hidden bg-bg-surface border border-border-subtle">
             <AnimatePresence mode="wait">
               <motion.img
                 key={currentGalleryIndex}
@@ -289,7 +305,7 @@ export function ActionFiguresPage() {
                     e.stopPropagation();
                     setCurrentGalleryIndex(prev => (prev === 0 ? selectedGalleryImages.length - 1 : prev - 1));
                   }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <ChevronDown className="w-5 h-5 rotate-90" />
                 </button>
@@ -298,7 +314,7 @@ export function ActionFiguresPage() {
                     e.stopPropagation();
                     setCurrentGalleryIndex(prev => (prev === selectedGalleryImages.length - 1 ? 0 : prev + 1));
                   }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <ChevronDown className="w-5 h-5 -rotate-90" />
                 </button>
@@ -344,15 +360,15 @@ export function ActionFiguresPage() {
           </motion.button>
         }
       >
-        <form id="figure-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-4">
+        <form id="figure-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="space-y-6">
             {/* Character Name */}
             <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Character Name(s)</label>
               <input
                 {...register('characterName', { required: true })}
                 autoComplete="off"
-                className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
+                className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
                 placeholder="e.g. Uchiha Itachi"
               />
             </div>
@@ -364,7 +380,7 @@ export function ActionFiguresPage() {
                 <input
                   {...register('sourceAnime', { required: true })}
                   autoComplete="off"
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
                   placeholder="e.g. Naruto Shippuden"
                 />
                 {watchedAnime && animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase()) && a !== watchedAnime).length > 0 && (
@@ -377,58 +393,71 @@ export function ActionFiguresPage() {
               </div>
             </div>
 
-            {/* Maker */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Maker</label>
-              <div className="relative">
-                <input
-                  {...register('maker', { required: true })}
-                  autoComplete="off"
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. Banpresto"
-                />
-                {watchedMaker && makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase()) && m !== watchedMaker).length > 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
-                    {makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase())).slice(0, 5).map(m => (
-                      <button key={m} type="button" onClick={() => setValue('maker', m)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{m}</button>
-                    ))}
-                  </div>
-                )}
+            {/* Maker and Line Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Maker */}
+              <div className="space-y-2">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Maker</label>
+                <div className="relative">
+                  <input
+                    {...register('maker', { required: true })}
+                    autoComplete="off"
+                    className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
+                    placeholder="e.g. Banpresto"
+                  />
+                  {watchedMaker && makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase()) && m !== watchedMaker).length > 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
+                      {makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase())).slice(0, 5).map(m => (
+                        <button key={m} type="button" onClick={() => setValue('maker', m)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{m}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Line and Scale */}
-            <div className="grid grid-cols-2 gap-4">
+              {/* Line */}
               <div className="space-y-2">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Series/Line (optional)</label>
                 <input
                   {...register('figureLine')}
                   autoComplete="off"
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. Fight On"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
+                  placeholder="e.g. Grandista"
                 />
               </div>
+            </div>
+
+            {/* Scale and isGifted Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Scale (optional)</label>
                 <input
                   {...register('scale')}
                   autoComplete="off"
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. No Scale"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
+                  placeholder="e.g. 1/7"
                 />
+              </div>
+              <div className="flex items-center gap-3 h-11 px-4 bg-bg-surface border border-border-subtle rounded-xl md:mt-6">
+                <input
+                  type="checkbox"
+                  id="isGifted"
+                  {...register('isGifted')}
+                  className="w-5 h-5 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card"
+                />
+                <label htmlFor="isGifted" className="text-sm font-bold text-text-main cursor-pointer select-none">Mark as Gift</label>
               </div>
             </div>
 
             {/* Price and Shipping */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Price</label>
                 <input
                   type="number" step="0.01"
                   {...register('totalPrice', { required: true })}
                   autoComplete="off"
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  placeholder="Price"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
               <div className="space-y-2">
@@ -437,8 +466,7 @@ export function ActionFiguresPage() {
                   type="number" step="0.01"
                   {...register('shippingCost')}
                   autoComplete="off"
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  placeholder="Delivery Fee"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
             </div>
@@ -448,12 +476,12 @@ export function ActionFiguresPage() {
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Images (up to 3)</label>
               <div className="grid grid-cols-3 gap-3">
                 {imagePreviews.map((url, i) => (
-                  <div key={i} className="aspect-square rounded-lg overflow-hidden border border-border-subtle bg-white relative group">
+                  <div key={i} className="aspect-square rounded-lg overflow-hidden border border-border-subtle bg-bg-surface relative group">
                     <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   </div>
                 ))}
                 {imagePreviews.length < 3 && (
-                  <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex flex-col items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-white">
+                  <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex flex-col items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-bg-surface">
                     <Plus className="w-5 h-5" />
                     <input
                       type="file"

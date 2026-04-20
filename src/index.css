@@ -5,12 +5,12 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", sans-serif;
   
-  /* Shared Base Palette - Solar Gallery */
-  --color-accent-primary: #ff4e00;
-  --color-accent-soft: #ff8c42;
-  --color-accent-red: #e63946;
+  /* Shared Base Palette - KuraDex */
+  --color-accent-primary: #3b82f6;
+  --color-accent-soft: #10b981;
+  --color-accent-red: #f43f5e;
 
-  /* Sophisticated Palette Variables */
+  /* Theme-aware Palette Variables */
   --color-bg-deep: var(--bg-deep);
   --color-bg-surface: var(--bg-surface);
   --color-bg-card: var(--bg-card);
@@ -18,41 +18,36 @@
   --color-text-muted: var(--text-muted);
   --color-border-subtle: var(--border-subtle);
 
-  /* Brand Remapping for Legacy Components and Modal/Loading */
-  --color-brand-50: var(--bg-card);
-  --color-brand-100: var(--bg-card);
-  --color-brand-200: var(--border-subtle);
-  --color-brand-300: var(--text-muted);
-  --color-brand-400: var(--accent-soft);
+  /* Legacy remapping */
   --color-brand-500: var(--accent-primary);
-  --color-brand-600: var(--accent-red);
-  --color-brand-700: var(--text-muted);
   --color-brand-800: var(--bg-deep);
-  --color-brand-900: var(--bg-surface);
-  --color-brand-950: var(--bg-deep);
 }
 
 @layer base {
   :root {
-    --bg-deep: #fffaf9;
-    --bg-surface: #ffffff;
-    --bg-card: #fff3f0;
-    --text-main: #2d100b;
-    --text-muted: #8c716d;
-    --border-subtle: rgba(255, 78, 0, 0.1);
+    --bg-deep: #f0f9ff; /* Sky 50 - Background */
+    --bg-surface: #f0fdfa; /* Teal 50 - Surfaces */
+    --bg-card: #e0f2fe; /* Sky 100 - Cards/Elevations */
+    --text-main: #0c4a6e; /* Sky 900 - Dark Blue for contrast */
+    --text-muted: #475569;
+    --border-subtle: rgba(20, 184, 166, 0.2); /* Teal 500 boundary */
   }
 
   .dark {
-    --bg-deep: #0a0502;
-    --bg-surface: #1a0a0a;
-    --bg-card: #2d1515;
-    --text-main: #fff5f2;
-    --text-muted: #b39a94;
-    --border-subtle: rgba(255, 78, 0, 0.2);
+    --bg-deep: #020617;
+    --bg-surface: #0f172a;
+    --bg-card: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-subtle: rgba(248, 250, 252, 0.12);
   }
 
   body {
     @apply bg-bg-deep text-text-main transition-colors duration-300;
+  }
+
+  input, select, textarea {
+    @apply bg-bg-surface text-text-main border-border-subtle focus:ring-accent-primary;
   }
 
   button, a {
@@ -65,7 +60,7 @@
 }
 
 .card-sophisticated {
-  @apply bg-bg-card border border-border-subtle rounded-3xl p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-accent-primary/5 hover:-translate-y-1;
+  @apply bg-bg-card border border-border-subtle rounded-3xl p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-accent-primary/10 hover:-translate-y-1;
 }
 
 .surface-container {
@@ -73,7 +68,7 @@
 }
 
 .btn-primary-sophisticated {
-  @apply bg-gradient-to-br from-accent-primary to-accent-red hover:brightness-110 text-white rounded-2xl px-8 py-3 font-bold transition-all active:scale-95 shadow-lg shadow-accent-primary/20;
+  @apply bg-gradient-to-br from-accent-primary to-accent-soft hover:brightness-110 text-white rounded-2xl px-8 py-3 font-bold transition-all active:scale-95 shadow-lg shadow-accent-primary/20;
 }
 
 /* Custom scrollbar */

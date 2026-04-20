@@ -118,7 +118,7 @@ export function PreordersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-xl font-medium text-text-main">Pipelines</h2>
+          <h2 className="text-xl font-medium text-text-main">Preorders</h2>
           <p className="text-text-muted text-sm mt-1">Status of your incoming grails.</p>
         </div>
         <button
@@ -150,7 +150,7 @@ export function PreordersPage() {
                     initial={{ opacity: 0, x: -5 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0 }}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors group"
+                    className="border-b border-white/5 hover:bg-white/5 transition-colors group"
                   >
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
@@ -218,7 +218,7 @@ export function PreordersPage() {
                 <input
                   {...register('figureName', { required: true })}
                   autoComplete="off"
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
                   placeholder="Figure Name"
                 />
               </div>
@@ -227,7 +227,7 @@ export function PreordersPage() {
                 <textarea
                   {...register('description')}
                   rows={3}
-                  className="w-full bg-white border border-border-subtle rounded-xl p-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm resize-none transition-all"
+                  className="w-full bg-bg-surface border border-border-subtle rounded-xl p-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm resize-none transition-all"
                   placeholder="Additional details..."
                 />
               </div>
@@ -237,7 +237,7 @@ export function PreordersPage() {
                    <input
                      {...register('seller', { required: true })}
                      autoComplete="off"
-                     className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+                     className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
                      placeholder="Shop Name"
                    />
                 </div>
@@ -246,7 +246,7 @@ export function PreordersPage() {
                   <input
                     {...register('estimatedArrival', { required: true })}
                     autoComplete="off"
-                    className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+                    className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
                     placeholder="e.g. Q4 2026"
                   />
                 </div>
@@ -256,7 +256,7 @@ export function PreordersPage() {
                 <input
                   type="date"
                   {...register('datePreordered', { required: true })}
-                  className="w-full h-11 bg-white border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
                 />
               </div>
               
@@ -264,10 +264,10 @@ export function PreordersPage() {
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">References (up to 3)</label>
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   {imagePreviews.map((url, i) => (
-                    <img key={i} src={url} className="aspect-square rounded-lg object-cover border border-border-subtle bg-white" referrerPolicy="no-referrer" />
+                    <img key={i} src={url} className="aspect-square rounded-lg object-cover border border-border-subtle bg-bg-surface" referrerPolicy="no-referrer" />
                   ))}
                   {imagePreviews.length < 3 && (
-                    <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-white">
+                    <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-bg-surface">
                       <Plus className="w-4 h-4" />
                       <input
                         type="file" multiple
