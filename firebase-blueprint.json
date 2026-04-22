@@ -46,6 +46,7 @@
         "shippingCost": { "type": "number" },
         "sourceAnime": { "type": "string" },
         "seasonArc": { "type": "string" },
+        "isGifted": { "type": "boolean" },
         "imageUrls": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
@@ -58,14 +59,15 @@
       "properties": {
         "userId": { "type": "string" },
         "figureName": { "type": "string" },
-        "description": { "type": "string" },
         "seller": { "type": "string" },
         "datePreordered": { "type": "string", "format": "date" },
         "estimatedArrival": { "type": "string" },
+        "preorderPrice": { "type": "number" },
+        "downpayment": { "type": "number" },
         "imageUrls": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "figureName", "datePreordered", "estimatedArrival"]
+      "required": ["userId", "figureName", "datePreordered", "estimatedArrival", "preorderPrice", "downpayment"]
     },
     "Equipment": {
       "title": "Equipment",

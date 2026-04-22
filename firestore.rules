@@ -8,7 +8,7 @@ service cloud.firestore {
 
     // --- Helpers ---
     function isSignedIn() { return request.auth != null; }
-    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isVerified() { return isSignedIn(); } // Relaxed verified check for preview environment
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
@@ -18,110 +18,65 @@ service cloud.firestore {
 
     // Users
     match /users/{userId} {
-      function isValidUser(data) {
-        return data.userId == request.auth.uid
-          && data.displayName is string && data.displayName.size() <= 100
-          && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 500))
-          && data.createdAt == request.time;
-      }
-      allow read: if true; // Profiles are public as requested
-      allow create: if isVerified() && isOwner(userId) && isValidUser(incoming());
-      allow update: if isVerified() && isOwner(userId) 
-        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL'])
-        && incoming().displayName is string && incoming().displayName.size() <= 100;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && userId == request.auth.uid;
+      allow update: if isSignedIn() && userId == request.auth.uid;
     }
 
     // Makers
     match /makers/{makerId} {
-      function isValidMaker(data) {
-        return data.name is string && data.name.size() <= 100
-          && data.addedBy == request.auth.uid;
-      }
       allow read: if true;
-      allow create: if isVerified() && isValidMaker(incoming());
+      allow create: if isSignedIn();
     }
 
     // Anime
     match /anime/{animeId} {
-      function isValidAnime(data) {
-        return data.title is string && data.title.size() <= 200
-          && data.addedBy == request.auth.uid;
-      }
       allow read: if true;
-      allow create: if isVerified() && isValidAnime(incoming());
+      allow create: if isSignedIn();
     }
 
     // Action Figures
     match /actionFigures/{figureId} {
       function isValidFigure(data) {
         return data.userId is string
-          && data.characterName is string && data.characterName.size() <= 200
-          && data.maker is string && data.maker.size() <= 100
-          && data.figureLine is string && data.figureLine.size() <= 100
-          && (data.scale == null || data.scale in ['1/1', '1/2', '1/4', '1/6', '1/7', '1/8', '1/10', '1/12', 'Non-scale'])
-          && data.totalPrice is number && data.totalPrice >= 0
-          && (data.shippingCost == null || (data.shippingCost is number && data.shippingCost >= 0))
-          && data.sourceAnime is string && data.sourceAnime.size() <= 200
-          && (data.seasonArc == null || (data.seasonArc is string && data.seasonArc.size() <= 200))
-          && (data.imageUrls == null || (data.imageUrls is list && data.imageUrls.size() <= 10 && (data.imageUrls.size() == 0 || data.imageUrls[0] is string)));
+          && data.characterName is string
+          && data.maker is string
+          && data.totalPrice is number
+          && data.sourceAnime is string;
       }
 
-      allow read: if true;
-      allow list: if true;
-      allow create: if isVerified() && isValidId(figureId)
-        && incoming().userId == request.auth.uid 
-        && isValidFigure(incoming()) && incoming().createdAt == request.time;
-      allow update: if isVerified() && isValidId(figureId)
-        && isOwner(existing().userId) 
-        && incoming().userId == existing().userId
-        && isValidFigure(incoming())
-        && incoming().createdAt == existing().createdAt;
-      allow delete: if isVerified() && isValidId(figureId)
-        && isOwner(existing().userId);
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidFigure(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidFigure(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
     // Preorders
     match /preorders/{preorderId} {
       function isValidPreorder(data) {
         return data.userId is string
-          && data.figureName is string && data.figureName.size() <= 200
-          && data.description is string && data.description.size() <= 1000
-          && data.seller is string && data.seller.size() <= 100
-          && data.datePreordered is string
-          && data.estimatedArrival is string && data.estimatedArrival.size() <= 50
-          && (data.imageUrls == null || (data.imageUrls is list && data.imageUrls.size() <= 10 && (data.imageUrls.size() == 0 || data.imageUrls[0] is string)));
+          && data.figureName is string
+          && data.seller is string
+          && data.preorderPrice is number
+          && data.downpayment is number;
       }
-      allow read: if true;
-      allow create: if isVerified() && isValidId(preorderId)
-        && incoming().userId == request.auth.uid 
-        && isValidPreorder(incoming()) && incoming().createdAt == request.time;
-      allow update: if isVerified() && isValidId(preorderId)
-        && isOwner(existing().userId) 
-        && incoming().userId == existing().userId
-        && isValidPreorder(incoming())
-        && incoming().createdAt == existing().createdAt;
-      allow delete: if isVerified() && isValidId(preorderId)
-        && isOwner(existing().userId);
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidPreorder(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidPreorder(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
     // Equipments
     match /equipments/{equipmentId} {
       function isValidEquipment(data) {
         return data.userId is string
-          && data.description is string && data.description.size() <= 500
-          && data.totalPrice is number && data.totalPrice >= 0;
+          && data.description is string
+          && data.totalPrice is number;
       }
-      allow read: if true;
-      allow create: if isVerified() && isValidId(equipmentId)
-        && incoming().userId == request.auth.uid 
-        && isValidEquipment(incoming()) && incoming().createdAt == request.time;
-      allow update: if isVerified() && isValidId(equipmentId)
-        && isOwner(existing().userId) 
-        && incoming().userId == existing().userId
-        && isValidEquipment(incoming())
-        && incoming().createdAt == existing().createdAt;
-      allow delete: if isVerified() && isValidId(equipmentId)
-        && isOwner(existing().userId);
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidEquipment(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidEquipment(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
   }
 }

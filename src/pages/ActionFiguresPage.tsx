@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { LoadingScreen, LoadingSpinner } from '../components/Loading';
 import { uploadImage } from '../lib/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Bookmark, Image as ImageIcon, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Gift, Image as ImageIcon, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -116,7 +116,7 @@ export function ActionFiguresPage() {
         userId: user.uid,
         characterName: data.characterName,
         maker: data.maker.trim(),
-        figureLine: data.figureLine || 'Standard',
+        figureLine: data.figureLine || '',
         scale: data.scale || null,
         totalPrice: Number(data.totalPrice),
         shippingCost: Number(data.shippingCost) || 0,
@@ -207,18 +207,23 @@ export function ActionFiguresPage() {
               <div className="flex-1 min-w-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
                   <div className="flex items-center gap-2 truncate">
+                    {figure.isGifted && (
+                      <Gift className="w-3.5 h-3.5 text-accent-soft shrink-0 animate-pulse" />
+                    )}
                     <h3 className="font-bold text-text-main truncate text-base tracking-tight" title={figure.characterName}>
                       {figure.characterName}
                     </h3>
-                    {figure.isGifted && (
-                      <Bookmark className="w-3.5 h-3.5 text-accent-soft fill-accent-soft shrink-0" />
-                    )}
                   </div>
                   
                   <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                     <span className="text-text-main">{figure.maker}</span>
                     <span className="text-accent-soft inline-flex items-center gap-1.5 font-bold">
-                      {figure.figureLine && `• ${figure.figureLine}`}
+                      {figure.figureLine && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-text-muted/40 font-normal">•</span>
+                          {figure.figureLine}
+                        </span>
+                      )}
                       {figure.scale && (
                         <span className="flex items-center gap-1.5">
                           <span className="text-text-muted/40 font-normal">•</span>

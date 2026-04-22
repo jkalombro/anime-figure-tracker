@@ -5,8 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { LoadingSpinner } from '../components/Loading';
 import { uploadImage } from '../lib/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, ChevronLeft, ChevronRight, X, Image as ImageIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { formatCurrency, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PreorderForm {
@@ -14,6 +15,8 @@ interface PreorderForm {
   seller: string;
   datePreordered: string;
   estimatedArrival: string;
+  preorderPrice: number;
+  downpayment: number;
   images?: FileList;
 }
 
@@ -26,6 +29,35 @@ export function PreordersPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
+  const [galleryDirection, setGalleryDirection] = useState(0);
+
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 1000 : -1000,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 1000 : -1000,
+      opacity: 0
+    })
+  };
+
+  const paginate = (newDirection: number) => {
+    if (!selectedGalleryImages) return;
+    setGalleryDirection(newDirection);
+    setCurrentGalleryIndex(prev => {
+      let next = prev + newDirection;
+      if (next < 0) next = selectedGalleryImages.length - 1;
+      if (next >= selectedGalleryImages.length) next = 0;
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -69,6 +101,8 @@ export function PreordersPage() {
         seller: data.seller,
         datePreordered: data.datePreordered,
         estimatedArrival: data.estimatedArrival,
+        preorderPrice: Number(data.preorderPrice) || 0,
+        downpayment: Number(data.downpayment) || 0,
         imageUrls,
         createdAt: editingPreorder ? editingPreorder.createdAt : serverTimestamp(),
       };
@@ -110,6 +144,8 @@ export function PreordersPage() {
       seller: preorder.seller,
       datePreordered: preorder.datePreordered,
       estimatedArrival: preorder.estimatedArrival,
+      preorderPrice: preorder.preorderPrice || 0,
+      downpayment: preorder.downpayment || 0,
     });
   };
 
@@ -122,10 +158,11 @@ export function PreordersPage() {
         </div>
         <button
           onClick={() => { setEditingPreorder(null); setImagePreviews([]); reset(); setIsModalOpen(true); }}
-          className="btn-primary-sophisticated h-10 px-6 flex items-center gap-2"
+          className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Preorder</span>
+          <span className="hidden sm:inline">Add Preorder</span>
+          <span className="sm:hidden">New</span>
         </button>
       </div>
 
@@ -138,27 +175,47 @@ export function PreordersPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated flex items-center justify-between gap-4 py-5"
+              className="card-sophisticated flex items-center justify-between gap-4"
             >
               <div className="flex-1 min-w-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
-                  <h3 className="font-bold text-text-main truncate text-base tracking-tight">
-                    {preorder.figureName}
-                  </h3>
-                  <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                    Date Ordered: <span className="text-text-main">{preorder.datePreordered}</span>
-                  </span>
+                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-y-0.5 sm:gap-x-8 items-baseline">
+                  <div className="order-1">
+                    <h3 className="font-bold text-text-main truncate text-base tracking-tight">
+                      {preorder.figureName}
+                    </h3>
+                    <p className="text-sm text-text-muted italic truncate leading-tight">
+                      {preorder.seller}
+                    </p>
+                  </div>
                   
-                  <p className="text-sm text-text-muted italic truncate mt-1">
-                    {preorder.seller}
-                  </p>
-                  <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap mt-1">
-                    Est Arrival: <span className="text-text-main">{preorder.estimatedArrival}</span>
-                  </span>
+                  <div className="order-2 sm:order-2 flex flex-col mt-1 sm:mt-0">
+                    <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                      Ordered: <span className="text-text-main">{preorder.datePreordered}</span>
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                      Arrival: <span className="text-text-main">{preorder.estimatedArrival}</span>
+                    </span>
+                  </div>
+
+                  <div className="order-3 sm:order-3 mt-1 sm:mt-2 flex flex-col">
+                    <div className="flex gap-4 sm:gap-6">
+                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
+                        Price: <span className="text-text-main">{formatCurrency(preorder.preorderPrice || 0)}</span>
+                      </span>
+                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
+                        DP: <span className="text-text-main">{formatCurrency(preorder.downpayment || 0)}</span>
+                      </span>
+                    </div>
+                    <span className="text-[10px] sm:text-xs text-text-muted font-black uppercase tracking-[0.2em] mt-0.5">
+                      Balance: <span className="text-accent-soft">
+                        {formatCurrency((preorder.preorderPrice || 0) - (preorder.downpayment || 0))}
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 sm:gap-2 px-2 shrink-0 sm:border-l border-border-subtle/50 h-10 self-center">
+              <div className="flex flex-col items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
                 <button
                   onClick={() => {
                     if (preorder.imageUrls?.length > 0) {
@@ -167,24 +224,24 @@ export function PreordersPage() {
                     }
                   }}
                   disabled={!preorder.imageUrls || preorder.imageUrls.length === 0}
-                  className="p-2 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
+                  className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
                   title="View Gallery"
                 >
-                  <ImageIcon className="w-5 h-5" />
+                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
                   onClick={() => handleEdit(preorder)}
-                  className="p-2 text-text-muted hover:text-accent-soft transition-colors"
+                  className="p-1.5 text-text-muted hover:text-accent-soft transition-colors"
                   title="Edit"
                 >
-                  <Edit2 className="w-5 h-5" />
+                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
                   onClick={() => handleDelete(preorder.id)}
-                  className="p-2 text-text-muted hover:text-red-400 transition-colors"
+                  className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
                   title="Delete"
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </motion.div>
@@ -197,61 +254,95 @@ export function PreordersPage() {
         )}
       </div>
 
-      <Modal
-        isOpen={!!selectedGalleryImages}
-        onClose={() => setSelectedGalleryImages(null)}
-        title="Reference Gallery"
-        className="md:max-w-3xl"
-      >
-        <div className="relative group min-h-[400px] flex flex-col gap-6">
-          <div className="relative aspect-square md:aspect-video rounded-3xl overflow-hidden bg-bg-surface border border-border-subtle">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={currentGalleryIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                src={selectedGalleryImages?.[currentGalleryIndex]}
-                className="w-full h-full object-contain"
-                referrerPolicy="no-referrer"
-              />
-            </AnimatePresence>
+      {/* Custom Fullscreen Gallery */}
+      <AnimatePresence>
+        {selectedGalleryImages && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center"
+          >
+            <button 
+              onClick={() => setSelectedGalleryImages(null)}
+              className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-50 border border-white/10"
+            >
+              <X className="w-6 h-6" />
+            </button>
 
-            {selectedGalleryImages && selectedGalleryImages.length > 1 && (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentGalleryIndex(prev => (prev === 0 ? selectedGalleryImages.length - 1 : prev - 1));
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+              <AnimatePresence initial={false} custom={galleryDirection}>
+                <motion.div
+                  key={currentGalleryIndex}
+                  custom={galleryDirection}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 }
                   }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <ChevronDown className="w-5 h-5 rotate-90" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentGalleryIndex(prev => (prev === selectedGalleryImages.length - 1 ? 0 : prev + 1));
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={1}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const swipe = Math.abs(offset.x) * velocity.x;
+                    if (swipe < -10000) {
+                      paginate(1);
+                    } else if (swipe > 10000) {
+                      paginate(-1);
+                    }
                   }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute inset-0 flex items-center justify-center p-4 sm:p-20 cursor-grab active:cursor-grabbing"
                 >
-                  <ChevronDown className="w-5 h-5 -rotate-90" />
-                </button>
-              </>
-            )}
-          </div>
-          
-          <div className="flex justify-center gap-2">
-            {selectedGalleryImages?.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentGalleryIndex(i)}
-                className={`w-2 h-2 rounded-full transition-all ${i === currentGalleryIndex ? 'bg-accent-primary w-6' : 'bg-text-muted/30'}`}
-              />
-            ))}
-          </div>
-        </div>
-      </Modal>
+                  <img
+                    src={selectedGalleryImages[currentGalleryIndex]}
+                    alt=""
+                    className="max-w-full max-h-full object-contain select-none pointer-events-none rounded-sm shadow-2xl"
+                    referrerPolicy="no-referrer"
+                  />
+                </motion.div>
+              </AnimatePresence>
+
+              {selectedGalleryImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => paginate(-1)}
+                    className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
+                  >
+                    <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10 group-hover:-translate-x-1 transition-transform" />
+                  </button>
+                  <button
+                    onClick={() => paginate(1)}
+                    className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
+                  >
+                    <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="absolute bottom-10 flex flex-col items-center gap-4">
+              <div className="flex gap-2">
+                {selectedGalleryImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentGalleryIndex(idx)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      idx === currentGalleryIndex ? "w-8 bg-accent-primary" : "w-2 bg-white/20 hover:bg-white/40"
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
+                {currentGalleryIndex + 1} / {selectedGalleryImages.length}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Modal
         isOpen={isModalOpen}
@@ -271,43 +362,65 @@ export function PreordersPage() {
       >
         <form id="preorder-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-4">
-             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Target Item</label>
-                <input
-                  {...register('figureName', { required: true })}
-                  autoComplete="off"
-                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-                  placeholder="Figure Name"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Provider</label>
-                   <input
-                     {...register('seller', { required: true })}
-                     autoComplete="off"
-                     className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-                     placeholder="Shop Name"
-                   />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Estimated Arrival</label>
-                  <input
-                    {...register('estimatedArrival', { required: true })}
-                    autoComplete="off"
-                    className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-                    placeholder="e.g. Q4 2026"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Ordered On</label>
-                <input
-                  type="date"
-                  {...register('datePreordered', { required: true })}
-                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-                />
-              </div>
+      <div>
+        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Target Item</label>
+        <input
+          {...register('figureName', { required: true })}
+          autoComplete="off"
+          className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+          placeholder="Figure Name"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+           <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Provider</label>
+           <input
+             {...register('seller', { required: true })}
+             autoComplete="off"
+             className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+             placeholder="Shop Name"
+           />
+        </div>
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Ordered On</label>
+          <input
+            type="date"
+            {...register('datePreordered', { required: true })}
+            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Preorder Price</label>
+          <input
+            type="number" step="0.01"
+            {...register('preorderPrice', { required: true })}
+            autoComplete="off"
+            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all font-bold"
+            placeholder="0.00"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Downpayment</label>
+          <input
+            type="number" step="0.01"
+            {...register('downpayment', { required: true })}
+            autoComplete="off"
+            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all font-bold"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Estimated Arrival</label>
+        <input
+          {...register('estimatedArrival', { required: true })}
+          autoComplete="off"
+          className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+          placeholder="e.g. Q4 2026"
+        />
+      </div>
               
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">References (up to 3)</label>
