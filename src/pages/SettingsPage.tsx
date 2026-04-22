@@ -42,13 +42,13 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-12">
+    <div className="max-w-2xl mx-auto space-y-8">
       <header>
-        <h2 className="text-3xl font-black text-text-main tracking-tight uppercase">Settings</h2>
-        <p className="text-text-muted mt-2">Adjust your Gallery's identity parameters.</p>
+        <h2 className="text-lg font-black text-text-main uppercase tracking-tighter italic">Settings</h2>
+        <p className="text-text-muted text-[10px] mt-1 uppercase tracking-widest font-bold">Identity Parameters</p>
       </header>
 
-      <div className="surface-container p-8 sm:p-12 space-y-10 relative overflow-hidden">
+      <div className="surface-container space-y-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-accent-primary/5 rounded-full blur-3xl -z-10" />
 
         <div className="flex flex-col items-center gap-6">

@@ -5,13 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { LoadingSpinner } from '../components/Loading';
 import { uploadImage } from '../lib/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PreorderForm {
   figureName: string;
-  description: string;
   seller: string;
   datePreordered: string;
   estimatedArrival: string;
@@ -25,6 +24,8 @@ export function PreordersPage() {
   const [editingPreorder, setEditingPreorder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
+  const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -65,7 +66,6 @@ export function PreordersPage() {
       const preorderData = {
         userId: user.uid,
         figureName: data.figureName,
-        description: data.description || '',
         seller: data.seller,
         datePreordered: data.datePreordered,
         estimatedArrival: data.estimatedArrival,
@@ -107,7 +107,6 @@ export function PreordersPage() {
     setIsModalOpen(true);
     reset({
       figureName: preorder.figureName,
-      description: preorder.description,
       seller: preorder.seller,
       datePreordered: preorder.datePreordered,
       estimatedArrival: preorder.estimatedArrival,
@@ -118,8 +117,8 @@ export function PreordersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-xl font-medium text-text-main">Preorders</h2>
-          <p className="text-text-muted text-sm mt-1">Status of your incoming grails.</p>
+          <h2 className="text-lg font-black text-text-main uppercase tracking-tighter italic">Preorders</h2>
+          <p className="text-text-muted text-[10px] mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
         </div>
         <button
           onClick={() => { setEditingPreorder(null); setImagePreviews([]); reset(); setIsModalOpen(true); }}
@@ -130,70 +129,129 @@ export function PreordersPage() {
         </button>
       </div>
 
-      <div className="surface-container">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border-subtle">
-                <th className="text-left py-4 px-4 text-[12px] uppercase tracking-wider text-text-muted font-semibold">Figure & Seller</th>
-                <th className="text-left py-4 px-4 text-[12px] uppercase tracking-wider text-text-muted font-semibold">Arrival</th>
-                <th className="text-left py-4 px-4 text-[12px] uppercase tracking-wider text-text-muted font-semibold hidden sm:table-cell">Ordered</th>
-                <th className="text-right py-4 px-4 text-[12px] uppercase tracking-wider text-text-muted font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence mode="popLayout">
-                {preorders.map((preorder) => (
-                  <motion.tr
-                    layout
-                    key={preorder.id}
-                    initial={{ opacity: 0, x: -5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors group"
-                  >
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        {preorder.imageUrls?.[0] && (
-                          <img src={preorder.imageUrls[0]} alt="" className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" />
-                        )}
-                        <div>
-                          <span className="block font-semibold text-text-main">{preorder.figureName}</span>
-                          <span className="text-xs text-text-muted">{preorder.seller}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-0.5 bg-accent-soft/10 text-accent-soft rounded-md text-[11px] font-medium">
-                        {preorder.estimatedArrival}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 hidden sm:table-cell">
-                      <div className="flex items-center gap-2 text-xs text-text-muted">
-                        <Calendar className="w-3 h-3" />
-                        {preorder.datePreordered}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex justify-end gap-3 text-text-muted text-xs font-semibold">
-                        <button onClick={() => handleEdit(preorder)} className="hover:text-accent-soft transition-colors px-2">Edit</button>
-                        <button onClick={() => handleDelete(preorder.id)} className="hover:text-red-400 transition-colors px-2">Delete</button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-              {preorders.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="py-20 text-center text-text-muted italic opacity-50">
-                    No preorders currently in the pipeline.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="space-y-4">
+        <AnimatePresence mode="popLayout">
+          {preorders.map((preorder) => (
+            <motion.div
+              layout
+              key={preorder.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="card-sophisticated flex items-center justify-between gap-4 py-5"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
+                  <h3 className="font-bold text-text-main truncate text-base tracking-tight">
+                    {preorder.figureName}
+                  </h3>
+                  <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                    Date Ordered: <span className="text-text-main">{preorder.datePreordered}</span>
+                  </span>
+                  
+                  <p className="text-sm text-text-muted italic truncate mt-1">
+                    {preorder.seller}
+                  </p>
+                  <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap mt-1">
+                    Est Arrival: <span className="text-text-main">{preorder.estimatedArrival}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 sm:gap-2 px-2 shrink-0 sm:border-l border-border-subtle/50 h-10 self-center">
+                <button
+                  onClick={() => {
+                    if (preorder.imageUrls?.length > 0) {
+                      setSelectedGalleryImages(preorder.imageUrls);
+                      setCurrentGalleryIndex(0);
+                    }
+                  }}
+                  disabled={!preorder.imageUrls || preorder.imageUrls.length === 0}
+                  className="p-2 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
+                  title="View Gallery"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleEdit(preorder)}
+                  className="p-2 text-text-muted hover:text-accent-soft transition-colors"
+                  title="Edit"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleDelete(preorder.id)}
+                  className="p-2 text-text-muted hover:text-red-400 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        {preorders.length === 0 && (
+          <div className="py-20 text-center text-text-muted italic opacity-50 surface-container">
+            No preorders currently in the pipeline.
+          </div>
+        )}
       </div>
+
+      <Modal
+        isOpen={!!selectedGalleryImages}
+        onClose={() => setSelectedGalleryImages(null)}
+        title="Reference Gallery"
+        className="md:max-w-3xl"
+      >
+        <div className="relative group min-h-[400px] flex flex-col gap-6">
+          <div className="relative aspect-square md:aspect-video rounded-3xl overflow-hidden bg-bg-surface border border-border-subtle">
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={currentGalleryIndex}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                src={selectedGalleryImages?.[currentGalleryIndex]}
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </AnimatePresence>
+
+            {selectedGalleryImages && selectedGalleryImages.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentGalleryIndex(prev => (prev === 0 ? selectedGalleryImages.length - 1 : prev - 1));
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ChevronDown className="w-5 h-5 rotate-90" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentGalleryIndex(prev => (prev === selectedGalleryImages.length - 1 ? 0 : prev + 1));
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ChevronDown className="w-5 h-5 -rotate-90" />
+                </button>
+              </>
+            )}
+          </div>
+          
+          <div className="flex justify-center gap-2">
+            {selectedGalleryImages?.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentGalleryIndex(i)}
+                className={`w-2 h-2 rounded-full transition-all ${i === currentGalleryIndex ? 'bg-accent-primary w-6' : 'bg-text-muted/30'}`}
+              />
+            ))}
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}
@@ -220,15 +278,6 @@ export function PreordersPage() {
                   autoComplete="off"
                   className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
                   placeholder="Figure Name"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Intel / Notes</label>
-                <textarea
-                  {...register('description')}
-                  rows={3}
-                  className="w-full bg-bg-surface border border-border-subtle rounded-xl p-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm resize-none transition-all"
-                  placeholder="Additional details..."
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

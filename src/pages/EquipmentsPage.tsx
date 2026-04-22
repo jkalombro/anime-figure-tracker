@@ -84,8 +84,8 @@ export function EquipmentsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-xl font-medium text-text-main">Gallery Gear</h2>
-          <p className="text-text-muted text-sm mt-1">Cabinets, shelves, and more.</p>
+          <h2 className="text-lg font-black text-text-main uppercase tracking-tighter italic">Gallery Gear</h2>
+          <p className="text-text-muted text-[10px] mt-1 uppercase tracking-widest font-bold">Maintenance Hub</p>
         </div>
         <button
           onClick={() => { setEditingEquipment(null); reset(); setIsModalOpen(true); }}

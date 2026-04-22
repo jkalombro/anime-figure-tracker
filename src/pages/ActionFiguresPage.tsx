@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { LoadingScreen, LoadingSpinner } from '../components/Loading';
 import { uploadImage } from '../lib/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Bookmark, Image as ImageIcon, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -34,6 +34,35 @@ export function ActionFiguresPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
+  const [galleryDirection, setGalleryDirection] = useState(0);
+
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 1000 : -1000,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 1000 : -1000,
+      opacity: 0
+    })
+  };
+
+  const paginate = (newDirection: number) => {
+    if (!selectedGalleryImages) return;
+    setGalleryDirection(newDirection);
+    setCurrentGalleryIndex(prev => {
+      let next = prev + newDirection;
+      if (next < 0) next = selectedGalleryImages.length - 1;
+      if (next >= selectedGalleryImages.length) next = 0;
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -151,120 +180,97 @@ export function ActionFiguresPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-xl font-medium text-text-main">Action Figures</h2>
-          <p className="text-text-muted text-sm mt-1">Manage your curated collection.</p>
+          <h2 className="text-lg font-black text-text-main uppercase tracking-tighter italic">Action Figures</h2>
+          <p className="text-text-muted text-[10px] mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
         </div>
         <button
           onClick={() => { setEditingFigure(null); setImagePreviews([]); reset(); setIsModalOpen(true); }}
-          className="btn-primary-sophisticated h-10 px-6 flex items-center gap-2"
+          className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          <span>Add New Figure</span>
+          <span className="hidden sm:inline">Add New Figure</span>
+          <span className="sm:hidden">New</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-4">
         <AnimatePresence mode="popLayout">
           {figures.map((figure) => (
             <motion.div
               layout
               key={figure.id}
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden flex flex-col h-full group hover:shadow-xl hover:shadow-accent-primary/5 hover:-translate-y-1 transition-all duration-300"
+              className="card-sophisticated flex items-center justify-between gap-4 py-5"
             >
-              {/* Image Header Style */}
-              <div 
-                className="relative aspect-video overflow-hidden bg-bg-surface border-b border-border-subtle cursor-pointer"
-                onClick={() => {
-                  setSelectedGalleryImages(figure.imageUrls || []);
-                  setCurrentGalleryIndex(0);
-                }}
-              >
-                {figure.imageUrls?.[0] ? (
-                  <img 
-                    src={figure.imageUrls[0]} 
-                    alt={figure.characterName} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-bg-card/30">
-                    <Camera className="w-8 h-8 text-text-muted/30" />
-                  </div>
-                )}
-
-                {figure.isGifted && (
-                  <div className="absolute top-3 left-3 px-3 py-1 bg-accent-soft/90 backdrop-blur-md rounded-full text-white text-[10px] font-black uppercase tracking-widest shadow-lg border border-white/20 flex items-center gap-1.5 animate-pulse">
-                    <Bookmark className="w-3 h-3 fill-white" />
-                    Gift
-                  </div>
-                )}
-                
-                {figure.imageUrls && figure.imageUrls.length > 1 && (
-                  <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-md text-white text-[9px] font-black uppercase tracking-widest shadow-xl border border-white/10">
-                    +{figure.imageUrls.length - 1} IMGS
-                  </div>
-                )}
-              </div>
-
-              {/* Content Layout (Based on First Design) */}
-              <div className="p-5 flex flex-col flex-1 gap-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-text-main truncate text-lg uppercase tracking-tight" title={figure.characterName}>
+              <div className="flex-1 min-w-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
+                  <div className="flex items-center gap-2 truncate">
+                    <h3 className="font-bold text-text-main truncate text-base tracking-tight" title={figure.characterName}>
                       {figure.characterName}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-text-muted mt-0.5">
-                      <p className="text-xs font-medium truncate italic">{figure.sourceAnime}</p>
+                    {figure.isGifted && (
+                      <Bookmark className="w-3.5 h-3.5 text-accent-soft fill-accent-soft shrink-0" />
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                    <span className="text-text-main">{figure.maker}</span>
+                    <span className="text-accent-soft inline-flex items-center gap-1.5 font-bold">
+                      {figure.figureLine && `• ${figure.figureLine}`}
                       {figure.scale && (
-                        <>
-                          <span className="w-1 h-1 rounded-full bg-text-muted/30" />
-                          <span className="text-[10px] font-bold text-accent-soft">{figure.scale}</span>
-                        </>
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-text-muted/40 font-normal">•</span>
+                          {figure.scale}
+                        </span>
                       )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      onClick={() => handleEdit(figure)}
-                      className="p-1.5 hover:bg-bg-surface rounded-lg transition-all text-text-muted hover:text-accent-primary active:scale-90"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(figure.id)}
-                      className="p-1.5 hover:bg-bg-surface rounded-lg transition-all text-text-muted hover:text-red-500 active:scale-90"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="bg-bg-surface/50 rounded-xl p-3 border border-border-subtle/50 group-hover:border-accent-primary/20 transition-colors">
-                    <span className="block text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-1">Manufacturer / Line</span>
-                    <p className="text-sm font-bold text-text-main truncate">
-                      {figure.maker} <span className="text-accent-soft ml-1">{figure.figureLine && `• ${figure.figureLine}`}</span>
-                    </p>
+                    </span>
                   </div>
 
-                  <div className="flex justify-between items-end py-1">
-                    <div>
-                      <span className="block text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-0.5">Price</span>
-                      <span className="text-2xl font-black text-accent-primary tracking-tighter leading-none">
-                        {formatCurrency(figure.totalPrice).split('.')[0]}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-0.5">Delivery</span>
-                      <span className="text-xs font-bold text-text-main tracking-wide">
-                        {figure.shippingCost > 0 ? formatCurrency(figure.shippingCost) : 'FREE'}
-                      </span>
-                    </div>
+                  <p className="text-sm text-text-muted italic truncate mt-1">
+                    {figure.sourceAnime}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4 mt-1 w-full max-w-[300px]">
+                    <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                      Price: <span className="text-text-main">{formatCurrency(figure.totalPrice)}</span>
+                    </span>
+                    <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                      Delivery: <span className="text-text-main">{figure.shippingCost > 0 ? formatCurrency(figure.shippingCost) : 'FREE'}</span>
+                    </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
+                <button
+                  onClick={() => {
+                    if (figure.imageUrls?.length > 0) {
+                      setSelectedGalleryImages(figure.imageUrls);
+                      setCurrentGalleryIndex(0);
+                    }
+                  }}
+                  disabled={!figure.imageUrls || figure.imageUrls.length === 0}
+                  className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
+                  title="View Gallery"
+                >
+                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+                <button
+                  onClick={() => handleEdit(figure)}
+                  className="p-1.5 text-text-muted hover:text-accent-soft transition-colors"
+                  title="Edit"
+                >
+                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+                <button
+                  onClick={() => handleDelete(figure.id)}
+                  className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
               </div>
             </motion.div>
           ))}
@@ -277,65 +283,95 @@ export function ActionFiguresPage() {
         </div>
       )}
 
-      {/* Gallery Modal */}
-      <Modal
-        isOpen={!!selectedGalleryImages}
-        onClose={() => setSelectedGalleryImages(null)}
-        title="Image Gallery"
-        className="md:max-w-3xl"
-      >
-        <div className="relative group min-h-[400px] flex flex-col gap-6">
-          <div className="relative aspect-square md:aspect-video rounded-3xl overflow-hidden bg-bg-surface border border-border-subtle">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={currentGalleryIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                src={selectedGalleryImages?.[currentGalleryIndex]}
-                className="w-full h-full object-contain"
-                referrerPolicy="no-referrer"
-              />
-            </AnimatePresence>
+      {/* Custom Fullscreen Gallery */}
+      <AnimatePresence>
+        {selectedGalleryImages && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center"
+          >
+            <button 
+              onClick={() => setSelectedGalleryImages(null)}
+              className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-50 border border-white/10"
+            >
+              <X className="w-6 h-6" />
+            </button>
 
-            {selectedGalleryImages && selectedGalleryImages.length > 1 && (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentGalleryIndex(prev => (prev === 0 ? selectedGalleryImages.length - 1 : prev - 1));
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+              <AnimatePresence initial={false} custom={galleryDirection}>
+                <motion.div
+                  key={currentGalleryIndex}
+                  custom={galleryDirection}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 }
                   }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <ChevronDown className="w-5 h-5 rotate-90" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentGalleryIndex(prev => (prev === selectedGalleryImages.length - 1 ? 0 : prev + 1));
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={1}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const swipe = Math.abs(offset.x) * velocity.x;
+                    if (swipe < -10000) {
+                      paginate(1);
+                    } else if (swipe > 10000) {
+                      paginate(-1);
+                    }
                   }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-main shadow-xl border border-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute inset-0 flex items-center justify-center p-4 sm:p-20 cursor-grab active:cursor-grabbing"
                 >
-                  <ChevronDown className="w-5 h-5 -rotate-90" />
-                </button>
-              </>
-            )}
-          </div>
+                  <img
+                    src={selectedGalleryImages[currentGalleryIndex]}
+                    alt=""
+                    className="max-w-full max-h-full object-contain select-none pointer-events-none rounded-sm shadow-2xl"
+                    referrerPolicy="no-referrer"
+                  />
+                </motion.div>
+              </AnimatePresence>
 
-          <div className="flex justify-center gap-3">
-            {selectedGalleryImages?.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentGalleryIndex(idx)}
-                className={cn(
-                  "w-2.5 h-2.5 rounded-full transition-all",
-                  idx === currentGalleryIndex ? "bg-accent-primary w-8" : "bg-text-muted/30 hover:bg-text-muted/50"
-                )}
-              />
-            ))}
-          </div>
-        </div>
-      </Modal>
+              {selectedGalleryImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => paginate(-1)}
+                    className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
+                  >
+                    <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10 group-hover:-translate-x-1 transition-transform" />
+                  </button>
+                  <button
+                    onClick={() => paginate(1)}
+                    className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
+                  >
+                    <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="absolute bottom-10 flex flex-col items-center gap-4">
+              <div className="flex gap-2">
+                {selectedGalleryImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentGalleryIndex(idx)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      idx === currentGalleryIndex ? "w-8 bg-accent-primary" : "w-2 bg-white/20 hover:bg-white/40"
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
+                {currentGalleryIndex + 1} / {selectedGalleryImages.length}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Modal
         isOpen={isModalOpen}

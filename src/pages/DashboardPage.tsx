@@ -225,7 +225,7 @@ export function DashboardPage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 md:ml-72 p-8 sm:p-16 mb-24 md:mb-0">
+      <main className="flex-1 md:ml-72 p-4 sm:p-8 mb-24 md:mb-0">
         <div className="max-w-6xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
