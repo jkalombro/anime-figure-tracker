@@ -10,9 +10,10 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  disabled?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, footer, className }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer, className, disabled }: ModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -21,7 +22,7 @@ export function Modal({ isOpen, onClose, title, children, footer, className }: M
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={disabled ? undefined : onClose}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           />
           <motion.div
@@ -37,7 +38,8 @@ export function Modal({ isOpen, onClose, title, children, footer, className }: M
               <h2 className="text-xl font-medium text-text-main">{title}</h2>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-bg-card rounded-full transition-colors text-text-muted"
+                disabled={disabled}
+                className="p-2 hover:bg-bg-card rounded-full transition-colors text-text-muted disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -9,6 +9,7 @@ import { TrendingUp, Package, Clock, Shield } from 'lucide-react';
 
 export function DashboardOverview() {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     figures: 0,
     preorders: 0,
@@ -21,9 +22,20 @@ export function DashboardOverview() {
   useEffect(() => {
     if (!user) return;
 
+    setLoading(true);
     const figuresQuery = query(collection(db, 'actionFigures'), where('userId', '==', user.uid));
     const preordersQuery = query(collection(db, 'preorders'), where('userId', '==', user.uid));
     const equipmentQuery = query(collection(db, 'equipments'), where('userId', '==', user.uid));
+
+    let figuresLoaded = false;
+    let preordersLoaded = false;
+    let equipmentLoaded = false;
+
+    const checkLoading = () => {
+      if (figuresLoaded && preordersLoaded && equipmentLoaded) {
+        setLoading(false);
+      }
+    };
 
     const unsubFigures = onSnapshot(figuresQuery, (snapshot) => {
       let cost = 0;
@@ -34,10 +46,14 @@ export function DashboardOverview() {
         shipping += data.shippingCost || 0;
       });
       setStats(prev => ({ ...prev, figures: snapshot.size, figureCost: cost, shippingCost: shipping }));
+      figuresLoaded = true;
+      checkLoading();
     });
 
     const unsubPreorders = onSnapshot(preordersQuery, (snapshot) => {
       setStats(prev => ({ ...prev, preorders: snapshot.size }));
+      preordersLoaded = true;
+      checkLoading();
     });
 
     const unsubEquipment = onSnapshot(equipmentQuery, (snapshot) => {
@@ -46,6 +62,8 @@ export function DashboardOverview() {
         cost += doc.data().totalPrice || 0;
       });
       setStats(prev => ({ ...prev, equipment: snapshot.size, equipmentCost: cost }));
+      equipmentLoaded = true;
+      checkLoading();
     });
 
     return () => {
@@ -73,12 +91,13 @@ export function DashboardOverview() {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
+        className="sticky top-0 md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0"
       >
-        <h2 className="text-xl font-black tracking-tight text-text-main">
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-text-main uppercase">
           WELCOME, <span className="text-accent-primary">COLLECTOR.</span>
         </h2>
-        <p className="text-text-muted text-[10px] mt-1 font-medium tracking-wide uppercase">
-          Your Gallery thrives. <span className="text-accent-soft">{stats.preorders} preorders</span> are on the horizon.
+        <p className="text-text-muted text-[10px] sm:text-xs mt-1 font-medium tracking-wide uppercase">
+          Your Gallery thrives. <span className="text-accent-soft">{stats.preorders} preorder{stats.preorders !== 1 ? 's' : ''}</span> are on the horizon.
         </p>
       </motion.header>
 
@@ -92,7 +111,7 @@ export function DashboardOverview() {
             extra: stats.shippingCost > 0 ? ` (+${formatCurrency(stats.shippingCost).replace('$', '')})` : '',
             sub: `${stats.figures} items` 
           },
-          { icon: Shield, label: "Gear", value: stats.equipmentCost, sub: `${stats.equipment} units` }
+          { icon: Shield, label: "Equipment", value: stats.equipmentCost, sub: `${stats.equipment} units` }
         ].map((item, i) => (
           <motion.div
             key={i}
@@ -106,11 +125,18 @@ export function DashboardOverview() {
                 <div className="w-4 h-4 sm:w-6 sm:h-6 rounded-md sm:rounded-lg bg-accent-primary/5 flex items-center justify-center group-hover:bg-accent-primary group-hover:text-white transition-all duration-300 shrink-0">
                   <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 </div>
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">
+                  {item.label}
+                  <span className="hidden sm:inline"> Expenses</span>
+                </span>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-1">
                 <p className="text-xs sm:text-lg lg:text-xl font-black text-text-main tracking-tighter truncate">
-                  {formatCurrency(item.value)}
+                  {loading ? (
+                    <span className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin inline-block align-middle" />
+                  ) : (
+                    formatCurrency(item.value)
+                  )}
                 </p>
                 {'extra' in item && (
                   <span className="text-[8px] sm:text-[10px] font-bold text-accent-soft shrink-0">

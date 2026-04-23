@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface EquipmentForm {
   description: string;
-  totalPrice: number;
+  totalPrice: number | null;
 }
 
 export function EquipmentsPage() {
@@ -20,12 +20,15 @@ export function EquipmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
+    setInitialLoading(true);
     const q = query(collection(db, 'equipments'), where('userId', '==', user.uid));
     return onSnapshot(q, (snapshot) => {
       setEquipments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setInitialLoading(false);
     });
   }, [user]);
 
@@ -40,7 +43,7 @@ export function EquipmentsPage() {
       const equipData = {
         userId: user.uid,
         description: data.description,
-        totalPrice: Number(data.totalPrice),
+        totalPrice: data.totalPrice !== null ? Number(data.totalPrice) : 0,
         createdAt: editingEquipment ? editingEquipment.createdAt : serverTimestamp(),
       };
 
@@ -76,19 +79,19 @@ export function EquipmentsPage() {
     setIsModalOpen(true);
     reset({
       description: equip.description,
-      totalPrice: equip.totalPrice,
+      totalPrice: equip.totalPrice ?? null,
     });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex sticky top-0 md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-8 transition-all">
         <div>
-          <h2 className="text-lg font-black text-text-main uppercase tracking-tighter italic">Gallery Gear</h2>
-          <p className="text-text-muted text-[10px] mt-1 uppercase tracking-widest font-bold">Maintenance Hub</p>
+          <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Gallery Gear</h2>
+          <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Maintenance Hub</p>
         </div>
         <button
-          onClick={() => { setEditingEquipment(null); reset(); setIsModalOpen(true); }}
+          onClick={() => { setEditingEquipment(null); reset({ description: '', totalPrice: null }); setIsModalOpen(true); }}
           className="btn-primary-sophisticated h-10 px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -97,8 +100,14 @@ export function EquipmentsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AnimatePresence mode="popLayout">
-          {equipments.map((equip) => (
+        {initialLoading ? (
+          <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4 text-text-muted">
+            <LoadingSpinner variant="brand" />
+            <p className="text-xs font-black uppercase tracking-widest italic animate-pulse">Inventory Check...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {equipments.map((equip) => (
             <motion.div
               layout
               key={equip.id}
@@ -131,11 +140,19 @@ export function EquipmentsPage() {
             </motion.div>
           ))}
         </AnimatePresence>
+        )}
       </div>
+
+      {!initialLoading && equipments.length === 0 && (
+        <div className="py-20 text-center text-text-muted italic opacity-50 border-2 border-dashed border-border-subtle rounded-3xl">
+          Your equipment locker is currently empty.
+        </div>
+      )}
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        disabled={loading}
         title={editingEquipment ? "Modify Gear" : "Equip Gallery"}
         footer={
           <button
@@ -149,7 +166,7 @@ export function EquipmentsPage() {
         }
       >
         <form id="equipment-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-4">
+          <fieldset disabled={loading} className="space-y-4">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">Description</label>
               <input
@@ -169,7 +186,7 @@ export function EquipmentsPage() {
                 placeholder="0.00"
               />
             </div>
-          </div>
+          </fieldset>
         </form>
       </Modal>
     </div>

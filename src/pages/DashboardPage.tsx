@@ -25,24 +25,24 @@ export function DashboardPage() {
     { label: 'Overview', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Figures', path: '/dashboard/figures', icon: Library },
     { label: 'Preorders', path: '/dashboard/preorders', icon: Clock },
-    { label: 'Equipments', path: '/dashboard/equipments', icon: Shield },
+    { label: 'Equipment', path: '/dashboard/equipments', icon: Shield },
   ];
 
   return (
     <div className="min-h-screen bg-bg-deep flex flex-col md:flex-row font-sans">
       {/* Mobile Top Header */}
-      <header className="md:hidden sticky top-0 z-50 bg-bg-surface/80 backdrop-blur-xl border-b border-border-subtle p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-accent-primary to-accent-soft rounded-lg flex items-center justify-center text-white shadow-lg shadow-accent-primary/20">
-            <Library className="w-4 h-4" />
+      <header className="md:hidden sticky top-0 z-50 bg-bg-surface/80 backdrop-blur-xl border-b border-border-subtle p-3 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-gradient-to-br from-accent-primary to-accent-soft rounded-lg flex items-center justify-center text-white shadow-lg shadow-accent-primary/20">
+            <Library className="w-3.5 h-3.5" />
           </div>
-          <h1 className="text-lg font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
+          <h1 className="text-base font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <DarkModeToggle />
           <button 
             onClick={() => setIsUserMenuOpen(true)}
-            className="w-10 h-10 rounded-xl overflow-hidden border border-border-subtle bg-bg-card flex items-center justify-center transition-all active:scale-95"
+            className="w-8 h-8 rounded-lg overflow-hidden border border-border-subtle bg-bg-card flex items-center justify-center transition-all active:scale-95"
           >
             {user?.photoURL ? (
               <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />

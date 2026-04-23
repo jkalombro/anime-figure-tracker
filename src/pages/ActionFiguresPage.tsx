@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { LoadingScreen, LoadingSpinner } from '../components/Loading';
 import { uploadImage } from '../lib/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Gift, Image as ImageIcon, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Gift, Image as ImageIcon, X, ArrowUp, ArrowDown, ShoppingBag, Package } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,14 +14,18 @@ interface FigureForm {
   characterName: string;
   maker: string;
   figureLine: string;
-  scale?: string;
-  totalPrice: number;
-  shippingCost?: number;
+  totalPrice: number | null;
+  shippingCost: number | null;
   sourceAnime: string;
   seasonArc?: string;
   images?: FileList;
   isGifted: boolean;
+  description?: string;
 }
+
+type FilterType = 'all' | 'purchased' | 'gifted';
+type SortField = 'characterName' | 'sourceAnime' | 'maker' | 'totalPrice';
+type SortOrder = 'asc' | 'desc';
 
 export function ActionFiguresPage() {
   const { user } = useAuth();
@@ -29,12 +33,59 @@ export function ActionFiguresPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFigure, setEditingFigure] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Filtering & Sorting State
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('totalPrice');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [makersSuggestions, setMakersSuggestions] = useState<string[]>([]);
   const [animeSuggestions, setAnimeSuggestions] = useState<string[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [galleryDirection, setGalleryDirection] = useState(0);
+
+  const purchasedBasePrice = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
+  const purchasedShipping = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.shippingCost || 0), 0);
+  
+  const giftsBasePrice = figures.filter(f => f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
+  const giftsShipping = figures.filter(f => f.isGifted).reduce((sum, f) => sum + (f.shippingCost || 0), 0);
+
+  const totalBasePrice = figures.reduce((sum, f) => sum + (f.totalPrice || 0), 0);
+  const totalShipping = figures.reduce((sum, f) => sum + (f.shippingCost || 0), 0);
+
+  const totalPurchasedCount = figures.filter(f => !f.isGifted).length;
+  const totalGiftsCount = figures.filter(f => f.isGifted).length;
+  const totalFiguresCount = figures.length;
+
+  const filteredAndSortedFigures = figures
+    .filter(figure => {
+      if (activeFilter === 'gifted' && !figure.isGifted) return false;
+      if (activeFilter === 'purchased' && figure.isGifted) return false;
+      
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        figure.characterName.toLowerCase().includes(searchLower) ||
+        figure.sourceAnime.toLowerCase().includes(searchLower) ||
+        figure.maker.toLowerCase().includes(searchLower) ||
+        (figure.figureLine && figure.figureLine.toLowerCase().includes(searchLower))
+      );
+    })
+    .sort((a, b) => {
+      let valA = a[sortField] ?? '';
+      let valB = b[sortField] ?? '';
+      
+      if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+      
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -66,9 +117,11 @@ export function ActionFiguresPage() {
 
   useEffect(() => {
     if (!user) return;
+    setInitialLoading(true);
     const q = query(collection(db, 'actionFigures'), where('userId', '==', user.uid));
     return onSnapshot(q, (snapshot) => {
       setFigures(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setInitialLoading(false);
     });
   }, [user]);
 
@@ -112,16 +165,16 @@ export function ActionFiguresPage() {
         imageUrls = [...imageUrls, ...newUrls].slice(0, 3);
       }
 
-      const figureData = {
+      const figureData: any = {
         userId: user.uid,
         characterName: data.characterName,
         maker: data.maker.trim(),
         figureLine: data.figureLine || '',
-        scale: data.scale || null,
-        totalPrice: Number(data.totalPrice),
-        shippingCost: Number(data.shippingCost) || 0,
+        totalPrice: data.totalPrice !== null ? Number(data.totalPrice) : 0,
+        shippingCost: data.shippingCost !== null ? Number(data.shippingCost) : 0,
         sourceAnime: data.sourceAnime.trim(),
         isGifted: data.isGifted,
+        description: data.description || '',
         imageUrls,
         createdAt: editingFigure ? editingFigure.createdAt : serverTimestamp(),
       };
@@ -168,23 +221,23 @@ export function ActionFiguresPage() {
       characterName: figure.characterName,
       maker: figure.maker,
       figureLine: figure.figureLine || '',
-      scale: figure.scale || '',
-      totalPrice: figure.totalPrice,
-      shippingCost: figure.shippingCost,
+      totalPrice: figure.totalPrice ?? null,
+      shippingCost: figure.shippingCost ?? null,
       sourceAnime: figure.sourceAnime,
       isGifted: figure.isGifted || false,
+      description: figure.description || '',
     });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex sticky top-0 md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-8 transition-all">
         <div>
-          <h2 className="text-lg font-black text-text-main uppercase tracking-tighter italic">Action Figures</h2>
-          <p className="text-text-muted text-[10px] mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
+          <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Action Figures</h2>
+          <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
         </div>
         <button
-          onClick={() => { setEditingFigure(null); setImagePreviews([]); reset(); setIsModalOpen(true); }}
+          onClick={() => { setEditingFigure(null); setImagePreviews([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, shippingCost: null, sourceAnime: '', isGifted: false, description: '' }); setIsModalOpen(true); }}
           className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -193,9 +246,152 @@ export function ActionFiguresPage() {
         </button>
       </div>
 
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {[
+          { 
+            id: 'all' as const, 
+            label: "Figure Expenses", 
+            mobileLabel: "Total",
+            value: totalBasePrice, 
+            extra: totalShipping > 0 ? ` (+${formatCurrency(totalShipping).replace('$', '')})` : '',
+            count: totalFiguresCount, 
+            icon: Package, 
+            activeColor: "bg-emerald-500/15",
+            activeBorder: "border-emerald-500", 
+            hoverBorder: "hover:border-accent-primary/50" 
+          },
+          { 
+            id: 'purchased' as const, 
+            label: "Total Purchased", 
+            mobileLabel: "Purchased",
+            value: purchasedBasePrice, 
+            extra: purchasedShipping > 0 ? ` (+${formatCurrency(purchasedShipping).replace('$', '')})` : '',
+            count: totalPurchasedCount, 
+            icon: ShoppingBag, 
+            activeColor: "bg-emerald-500/15",
+            activeBorder: "border-emerald-500", 
+            hoverBorder: "hover:border-accent-primary/50" 
+          },
+          { 
+            id: 'gifted' as const, 
+            label: "Total Gifts", 
+            mobileLabel: "Gifts",
+            value: giftsBasePrice, 
+            extra: giftsShipping > 0 ? ` (+${formatCurrency(giftsShipping).replace('$', '')})` : '',
+            count: totalGiftsCount, 
+            icon: Gift, 
+            activeColor: "bg-emerald-500/15",
+            activeBorder: "border-emerald-500", 
+            hoverBorder: "hover:border-emerald-500/50" 
+          }
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveFilter(item.id)}
+            className={cn(
+              "card-sophisticated p-2.5 sm:p-4 transition-all text-left group border-2 h-full flex flex-col justify-between",
+              activeFilter === item.id 
+                ? `${item.activeColor} ${item.activeBorder} shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02]` 
+                : `bg-bg-surface border-transparent ${item.hoverBorder}`
+            )}
+          >
+            <div>
+              <div className={cn(
+                "text-[7px] sm:text-[9px] uppercase font-black tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-1 sm:gap-2 mb-2 sm:mb-3",
+                activeFilter === item.id ? "text-emerald-600 dark:text-emerald-400" : "text-text-muted"
+              )}>
+                <div className={cn(
+                  "w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg flex items-center justify-center transition-all",
+                  activeFilter === item.id ? "bg-emerald-500 text-white" : "bg-accent-primary/5 text-accent-primary group-hover:bg-accent-primary group-hover:text-white"
+                )}>
+                  <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                </div>
+                <span className="truncate">
+                  <span className="sm:hidden">{item.mobileLabel}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
+                </span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-1">
+                <p className={cn(
+                  "text-[10px] sm:text-lg lg:text-xl font-black tracking-tighter truncate",
+                  activeFilter === item.id ? "text-text-main" : "text-text-main"
+                )}>
+                  {formatCurrency(item.value)}
+                </p>
+                {item.extra && (
+                  <span className={cn(
+                    "text-[7px] sm:text-[10px] font-bold shrink-0",
+                    activeFilter === item.id ? "text-accent-soft" : "text-accent-soft"
+                  )}>
+                    {item.extra}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <p className={cn(
+              "text-[7px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wider mt-2 opacity-70",
+              activeFilter === item.id ? "text-text-muted" : "text-text-muted"
+            )}>
+              {item.count} item{item.count !== 1 ? 's' : ''}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search characters, series, makers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl pl-11 pr-4 text-sm focus:ring-1 focus:ring-accent-primary outline-none transition-all"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-bg-deep rounded-full transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-text-muted" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:w-48">
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as SortField)}
+              className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl px-4 text-sm focus:ring-1 focus:ring-accent-primary outline-none appearance-none cursor-pointer pr-10 font-bold"
+            >
+              <option value="characterName">Character Name</option>
+              <option value="sourceAnime">Source Series</option>
+              <option value="maker">Maker</option>
+              <option value="totalPrice">Price</option>
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+          </div>
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="h-12 w-12 flex items-center justify-center bg-bg-surface border border-border-subtle rounded-2xl text-text-muted hover:text-accent-primary transition-colors shrink-0"
+            title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+          >
+            {sortOrder === 'asc' ? <ArrowUp className="w-5 h-5" /> : <ArrowDown className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
-          {figures.map((figure) => (
+        {initialLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-4 text-text-muted">
+            <LoadingSpinner variant="brand" />
+            <p className="text-xs font-black uppercase tracking-widest italic animate-pulse">Sourcing Archives...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {filteredAndSortedFigures.map((figure) => (
             <motion.div
               layout
               key={figure.id}
@@ -224,12 +420,6 @@ export function ActionFiguresPage() {
                           {figure.figureLine}
                         </span>
                       )}
-                      {figure.scale && (
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-text-muted/40 font-normal">•</span>
-                          {figure.scale}
-                        </span>
-                      )}
                     </span>
                   </div>
 
@@ -248,7 +438,7 @@ export function ActionFiguresPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
+              <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
                 <button
                   onClick={() => {
                     if (figure.imageUrls?.length > 0) {
@@ -280,11 +470,15 @@ export function ActionFiguresPage() {
             </motion.div>
           ))}
         </AnimatePresence>
+        )}
       </div>
 
-      {figures.length === 0 && (
+      {!initialLoading && filteredAndSortedFigures.length === 0 && (
         <div className="py-32 text-center text-text-muted italic opacity-50 surface-container">
-          Your collection catalog is empty. Start by recording your first grail.
+          {figures.length === 0 
+            ? "Your collection catalog is empty. Start by recording your first grail." 
+            : "No figures match your search or filter."
+          }
         </div>
       )}
 
@@ -383,10 +577,11 @@ export function ActionFiguresPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingFigure ? "Update Details" : "Record New Action Figure"}
         className="md:max-w-2xl"
+        disabled={loading}
         footer={
           <motion.button
-            whileHover={{ scale: isValid ? 1.01 : 1 }}
-            whileTap={{ scale: isValid ? 0.99 : 1 }}
+            whileHover={{ scale: (isValid && !loading) ? 1.01 : 1 }}
+            whileTap={{ scale: (isValid && !loading) ? 0.99 : 1 }}
             disabled={loading || !isValid}
             form="figure-form"
             type="submit"
@@ -402,7 +597,7 @@ export function ActionFiguresPage() {
         }
       >
         <form id="figure-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-6">
+          <fieldset disabled={loading} className="space-y-6">
             {/* Character Name */}
             <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Character Name(s)</label>
@@ -458,35 +653,13 @@ export function ActionFiguresPage() {
 
               {/* Line */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Series/Line (optional)</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Series/Line/Scale (optional)</label>
                 <input
                   {...register('figureLine')}
                   autoComplete="off"
                   className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. Grandista"
+                  placeholder="e.g. 20th anniversary series"
                 />
-              </div>
-            </div>
-
-            {/* Scale and isGifted Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Scale (optional)</label>
-                <input
-                  {...register('scale')}
-                  autoComplete="off"
-                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. 1/7"
-                />
-              </div>
-              <div className="flex items-center gap-3 h-11 px-4 bg-bg-surface border border-border-subtle rounded-xl md:mt-6">
-                <input
-                  type="checkbox"
-                  id="isGifted"
-                  {...register('isGifted')}
-                  className="w-5 h-5 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card"
-                />
-                <label htmlFor="isGifted" className="text-sm font-bold text-text-main cursor-pointer select-none">Mark as Gift</label>
               </div>
             </div>
 
@@ -535,11 +708,38 @@ export function ActionFiguresPage() {
                 )}
               </div>
             </div>
-          </div>
+
+            {/* Additional Details */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Additional Details (optional)</label>
+              <textarea
+                {...register('description')}
+                rows={3}
+                className="w-full bg-bg-surface border border-border-subtle rounded-xl px-4 py-3 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm resize-none"
+                placeholder="e.g. Put the extra details of your figure here like the height, special value, etc"
+              />
+            </div>
+
+            {/* Gift Checkbox */}
+            <div className="flex items-start sm:items-center gap-3 px-1">
+              <input
+                type="checkbox"
+                id="isGifted"
+                {...register('isGifted')}
+                className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
+              />
+              <label htmlFor="isGifted" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
+                Mark as Gift 
+                <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
+                  Check this if this figure was gifted to you by someone
+                </span>
+              </label>
+            </div>
+          </fieldset>
         </form>
       </Modal>
 
-      {loading && <div className="fixed inset-0 z-[110] bg-bg-deep/40 backdrop-blur-md"><LoadingScreen /></div>}
+      {/* removed loading screen overlay */}
     </div>
   );
 }

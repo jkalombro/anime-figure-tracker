@@ -15,8 +15,8 @@ interface PreorderForm {
   seller: string;
   datePreordered: string;
   estimatedArrival: string;
-  preorderPrice: number;
-  downpayment: number;
+  preorderPrice: number | null;
+  downpayment: number | null;
   images?: FileList;
 }
 
@@ -26,6 +26,7 @@ export function PreordersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPreorder, setEditingPreorder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
@@ -61,9 +62,11 @@ export function PreordersPage() {
 
   useEffect(() => {
     if (!user) return;
+    setInitialLoading(true);
     const q = query(collection(db, 'preorders'), where('userId', '==', user.uid));
     return onSnapshot(q, (snapshot) => {
       setPreorders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setInitialLoading(false);
     });
   }, [user]);
 
@@ -101,8 +104,8 @@ export function PreordersPage() {
         seller: data.seller,
         datePreordered: data.datePreordered,
         estimatedArrival: data.estimatedArrival,
-        preorderPrice: Number(data.preorderPrice) || 0,
-        downpayment: Number(data.downpayment) || 0,
+        preorderPrice: data.preorderPrice !== null ? Number(data.preorderPrice) : 0,
+        downpayment: data.downpayment !== null ? Number(data.downpayment) : 0,
         imageUrls,
         createdAt: editingPreorder ? editingPreorder.createdAt : serverTimestamp(),
       };
@@ -144,20 +147,20 @@ export function PreordersPage() {
       seller: preorder.seller,
       datePreordered: preorder.datePreordered,
       estimatedArrival: preorder.estimatedArrival,
-      preorderPrice: preorder.preorderPrice || 0,
-      downpayment: preorder.downpayment || 0,
+      preorderPrice: preorder.preorderPrice ?? null,
+      downpayment: preorder.downpayment ?? null,
     });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex sticky top-0 md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-8 transition-all">
         <div>
-          <h2 className="text-lg font-black text-text-main uppercase tracking-tighter italic">Preorders</h2>
-          <p className="text-text-muted text-[10px] mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
+          <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Preorders</h2>
+          <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
         </div>
         <button
-          onClick={() => { setEditingPreorder(null); setImagePreviews([]); reset(); setIsModalOpen(true); }}
+          onClick={() => { setEditingPreorder(null); setImagePreviews([]); reset({ figureName: '', seller: '', datePreordered: '', estimatedArrival: '', preorderPrice: null, downpayment: null }); setIsModalOpen(true); }}
           className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -167,8 +170,14 @@ export function PreordersPage() {
       </div>
 
       <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
-          {preorders.map((preorder) => (
+        {initialLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-4 text-text-muted">
+            <LoadingSpinner variant="brand" />
+            <p className="text-xs font-black uppercase tracking-widest italic animate-pulse">Scanning Future Cargo...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {preorders.map((preorder) => (
             <motion.div
               layout
               key={preorder.id}
@@ -215,7 +224,7 @@ export function PreordersPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
+              <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
                 <button
                   onClick={() => {
                     if (preorder.imageUrls?.length > 0) {
@@ -247,12 +256,14 @@ export function PreordersPage() {
             </motion.div>
           ))}
         </AnimatePresence>
-        {preorders.length === 0 && (
-          <div className="py-20 text-center text-text-muted italic opacity-50 surface-container">
-            No preorders currently in the pipeline.
-          </div>
         )}
       </div>
+
+      {!initialLoading && preorders.length === 0 && (
+        <div className="py-20 text-center text-text-muted italic opacity-50 surface-container">
+          No preorders currently in the pipeline.
+        </div>
+      )}
 
       {/* Custom Fullscreen Gallery */}
       <AnimatePresence>
@@ -349,6 +360,7 @@ export function PreordersPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingPreorder ? "Update Pipeline" : "Log New Preorder"}
         className="md:max-w-xl"
+        disabled={loading}
         footer={
           <button
             disabled={loading || !isValid}
@@ -361,7 +373,7 @@ export function PreordersPage() {
         }
       >
         <form id="preorder-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-4">
+          <fieldset disabled={loading} className="space-y-4">
       <div>
         <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Target Item</label>
         <input
@@ -441,7 +453,7 @@ export function PreordersPage() {
                   )}
                 </div>
               </div>
-          </div>
+          </fieldset>
         </form>
       </Modal>
     </div>
