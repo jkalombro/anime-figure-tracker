@@ -20,6 +20,8 @@ export function EquipmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [equipToDelete, setEquipToDelete] = useState<any>(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
@@ -63,14 +65,22 @@ export function EquipmentsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this equipment?')) {
-      setLoading(true);
-      try {
-        await deleteDoc(doc(db, 'equipments', id));
-      } finally {
-        setLoading(false);
-      }
+  const handleDelete = (equip: any) => {
+    setEquipToDelete(equip);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!equipToDelete) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'equipments', equipToDelete.id));
+      setIsDeleteModalOpen(false);
+      setEquipToDelete(null);
+    } catch (error) {
+      console.error("Error deleting equipment:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,7 +124,7 @@ export function EquipmentsPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated flex items-center gap-6"
+              className="card-sophisticated p-4 flex items-center gap-6"
             >
               <div className="w-12 h-12 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-soft shrink-0">
                 <Box className="w-5 h-5" />
@@ -131,7 +141,7 @@ export function EquipmentsPage() {
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                   onClick={() => handleDelete(equip.id)}
+                   onClick={() => handleDelete(equip)}
                    className="p-2 text-text-muted hover:text-red-400 transition-colors"
                 >
                    <Trash2 className="w-4 h-4" />
@@ -188,6 +198,48 @@ export function EquipmentsPage() {
             </div>
           </fieldset>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !loading && setIsDeleteModalOpen(false)}
+        title="Safe Disposal"
+        className="md:max-w-md"
+        disabled={loading}
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={loading}
+              className="flex-1 h-12 rounded-xl text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-bg-card transition-all disabled:opacity-30"
+            >
+              Abort
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={loading}
+              className="flex-1 h-12 bg-red-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
+            >
+              {loading ? <LoadingSpinner variant="white" /> : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Scrap
+                </>
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-center">
+          <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Box className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-text-main italic tracking-tighter">DECOMMISSIONING GEAR</h3>
+          <p className="text-text-muted text-sm leading-relaxed">
+            Are you sure you want to remove <span className="text-text-main font-bold">"{equipToDelete?.description}"</span>? This will permanently erase it from maintenance records.
+          </p>
+        </div>
       </Modal>
     </div>
   );

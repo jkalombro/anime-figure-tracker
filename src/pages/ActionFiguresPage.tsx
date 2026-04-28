@@ -46,6 +46,8 @@ export function ActionFiguresPage() {
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [galleryDirection, setGalleryDirection] = useState(0);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [figureToDelete, setFigureToDelete] = useState<any>(null);
 
   const purchasedBasePrice = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
   const purchasedShipping = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.shippingCost || 0), 0);
@@ -202,14 +204,22 @@ export function ActionFiguresPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this figure?')) {
-      setLoading(true);
-      try {
-        await deleteDoc(doc(db, 'actionFigures', id));
-      } finally {
-        setLoading(false);
-      }
+  const handleDelete = (figure: any) => {
+    setFigureToDelete(figure);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!figureToDelete) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'actionFigures', figureToDelete.id));
+      setIsDeleteModalOpen(false);
+      setFigureToDelete(null);
+    } catch (error) {
+      console.error("Error deleting figure:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -227,6 +237,15 @@ export function ActionFiguresPage() {
       isGifted: figure.isGifted || false,
       description: figure.description || '',
     });
+  };
+
+  const abbreviateMaker = (maker: string) => {
+    if (!maker) return '';
+    const words = maker.trim().split(/\s+/);
+    if (words.length > 1) {
+      return words.map(word => word[0].toUpperCase()).join('');
+    }
+    return maker;
   };
 
   return (
@@ -289,7 +308,7 @@ export function ActionFiguresPage() {
             key={item.id}
             onClick={() => setActiveFilter(item.id)}
             className={cn(
-              "card-sophisticated p-2.5 sm:p-4 transition-all text-left group border-2 h-full flex flex-col justify-between",
+              "card-sophisticated p-2 sm:p-4 transition-all text-left group border-2 h-full flex flex-col justify-between",
               activeFilter === item.id 
                 ? `${item.activeColor} ${item.activeBorder} shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02]` 
                 : `bg-bg-surface border-transparent ${item.hoverBorder}`
@@ -398,42 +417,48 @@ export function ActionFiguresPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated flex items-center justify-between gap-4 py-5"
+              className="card-sophisticated px-4 flex items-center justify-between gap-4 py-5 relative overflow-hidden"
             >
+              {figure.isGifted && (
+                <div className="absolute top-0 left-0 z-10">
+                  <div className="bg-accent-soft/20 dark:bg-accent-soft/30 text-accent-soft px-2 py-2 rounded-br-2xl border-r border-b border-accent-soft/20 flex items-center justify-center">
+                    <Gift className="w-3.5 h-3.5 animate-pulse" />
+                  </div>
+                </div>
+              )}
               <div className="flex-1 min-w-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
-                  <div className="flex items-center gap-2 truncate">
-                    {figure.isGifted && (
-                      <Gift className="w-3.5 h-3.5 text-accent-soft shrink-0 animate-pulse" />
-                    )}
-                    <h3 className="font-bold text-text-main truncate text-base tracking-tight" title={figure.characterName}>
-                      {figure.characterName}
+                <div className="flex flex-col gap-1">
+                  {/* First Row */}
+                  <div className="flex items-start gap-2 flex-wrap">
+                    <h3 className="font-bold text-text-main text-base tracking-tight leading-snug">
+                      <span>{figure.characterName}</span>
+                      <span className="mx-2 text-text-muted/30 font-normal">•</span>
+                      <span className="text-text-muted uppercase text-[10px] sm:text-xs font-black tracking-widest" title={figure.maker}>{abbreviateMaker(figure.maker)}</span>
+                      {figure.figureLine && (
+                        <>
+                          <span className="mx-2 text-text-muted/30 font-normal">•</span>
+                          <span className="text-accent-soft font-bold text-xs sm:text-sm whitespace-nowrap">
+                            {figure.figureLine}
+                          </span>
+                        </>
+                      )}
                     </h3>
                   </div>
-                  
-                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
-                    <span className="text-text-main">{figure.maker}</span>
-                    <span className="text-accent-soft inline-flex items-center gap-1.5 font-bold">
-                      {figure.figureLine && (
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-text-muted/40 font-normal">•</span>
-                          {figure.figureLine}
-                        </span>
-                      )}
-                    </span>
-                  </div>
 
-                  <p className="text-sm text-text-muted italic truncate mt-1">
-                    {figure.sourceAnime}
-                  </p>
+                  {/* Second Row - Maintains current content */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline mt-1">
+                    <p className="text-sm text-text-muted italic truncate mb-2">
+                      {figure.sourceAnime}
+                    </p>
 
-                  <div className="grid grid-cols-2 gap-4 mt-1 w-full max-w-[300px]">
-                    <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                      Price: <span className="text-text-main">{formatCurrency(figure.totalPrice)}</span>
-                    </span>
-                    <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                      Delivery: <span className="text-text-main">{figure.shippingCost > 0 ? formatCurrency(figure.shippingCost) : 'FREE'}</span>
-                    </span>
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-[300px]">
+                      <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                        Price: <span className="text-text-main">{formatCurrency(figure.totalPrice)}</span>
+                      </span>
+                      <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                        Delivery: <span className={cn("text-text-main", figure.shippingCost === 0 && "text-emerald-500 font-black")}>{figure.shippingCost > 0 ? formatCurrency(figure.shippingCost) : 'FREE'}</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -460,7 +485,7 @@ export function ActionFiguresPage() {
                   <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
-                  onClick={() => handleDelete(figure.id)}
+                  onClick={() => handleDelete(figure)}
                   className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
                   title="Delete"
                 >
@@ -737,6 +762,48 @@ export function ActionFiguresPage() {
             </div>
           </fieldset>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !loading && setIsDeleteModalOpen(false)}
+        title="Confirm Disposal"
+        className="md:max-w-md"
+        disabled={loading}
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={loading}
+              className="flex-1 h-12 rounded-xl text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-bg-card transition-all disabled:opacity-30"
+            >
+              Abort
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={loading}
+              className="flex-1 h-12 bg-red-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
+            >
+              {loading ? <LoadingSpinner variant="white" /> : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Dispose
+                </>
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-center">
+          <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-text-main italic tracking-tighter">INITIATING DATA DISPOSAL</h3>
+          <p className="text-text-muted text-sm leading-relaxed">
+            Are you sure you want to remove <span className="text-text-main font-bold">"{figureToDelete?.characterName}"</span> from the catalog archive? This action cannot be reversed.
+          </p>
+        </div>
       </Modal>
 
       {/* removed loading screen overlay */}

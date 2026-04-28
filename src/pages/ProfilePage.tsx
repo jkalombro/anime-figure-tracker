@@ -117,7 +117,7 @@ export function ProfilePage() {
              { label: 'Series', val: new Set(figures.map(f => f.sourceAnime)).size },
              { label: 'Net Worth', val: formatCurrency(figures.reduce((acc, f) => acc + f.totalPrice, 0)).split('.')[0] }
            ].map((stat, i) => (
-             <div key={i} className="card-sophisticated text-center group">
+             <div key={i} className="card-sophisticated p-4 text-center group">
                 <p className="text-3xl font-black text-text-main tracking-tighter group-hover:text-accent-primary transition-colors">{stat.val}</p>
                 <p className="text-[10px] uppercase font-black text-text-muted tracking-[0.2em] mt-2">{stat.label}</p>
              </div>

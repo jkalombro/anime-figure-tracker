@@ -14,7 +14,8 @@ interface PreorderForm {
   figureName: string;
   seller: string;
   datePreordered: string;
-  estimatedArrival: string;
+  estimatedArrivalFrom: string;
+  estimatedArrivalTo: string;
   preorderPrice: number | null;
   downpayment: number | null;
   images?: FileList;
@@ -31,6 +32,8 @@ export function PreordersPage() {
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [galleryDirection, setGalleryDirection] = useState(0);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [preorderToDelete, setPreorderToDelete] = useState<any>(null);
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -103,7 +106,8 @@ export function PreordersPage() {
         figureName: data.figureName,
         seller: data.seller,
         datePreordered: data.datePreordered,
-        estimatedArrival: data.estimatedArrival,
+        estimatedArrivalFrom: data.estimatedArrivalFrom,
+        estimatedArrivalTo: data.estimatedArrivalTo || null,
         preorderPrice: data.preorderPrice !== null ? Number(data.preorderPrice) : 0,
         downpayment: data.downpayment !== null ? Number(data.downpayment) : 0,
         imageUrls,
@@ -127,14 +131,22 @@ export function PreordersPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this preorder?')) {
-      setLoading(true);
-      try {
-        await deleteDoc(doc(db, 'preorders', id));
-      } finally {
-        setLoading(false);
-      }
+  const handleDelete = (preorder: any) => {
+    setPreorderToDelete(preorder);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!preorderToDelete) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'preorders', preorderToDelete.id));
+      setIsDeleteModalOpen(false);
+      setPreorderToDelete(null);
+    } catch (error) {
+      console.error("Error deleting preorder:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -146,10 +158,40 @@ export function PreordersPage() {
       figureName: preorder.figureName,
       seller: preorder.seller,
       datePreordered: preorder.datePreordered,
-      estimatedArrival: preorder.estimatedArrival,
+      estimatedArrivalFrom: preorder.estimatedArrivalFrom || preorder.estimatedArrival || '',
+      estimatedArrivalTo: preorder.estimatedArrivalTo || '',
       preorderPrice: preorder.preorderPrice ?? null,
       downpayment: preorder.downpayment ?? null,
     });
+  };
+
+  const formatDateLong = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      // Input is YYYY-MM-DD
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      if (isNaN(date.getTime())) return dateStr;
+      
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+      return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const formatMonthYear = (monthStr: string) => {
+    if (!monthStr || !monthStr.includes('-')) return monthStr;
+    try {
+      const [year, month] = monthStr.split('-').map(Number);
+      const date = new Date(year, month - 1);
+      return date.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return monthStr;
+    }
   };
 
   return (
@@ -160,7 +202,7 @@ export function PreordersPage() {
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
         </div>
         <button
-          onClick={() => { setEditingPreorder(null); setImagePreviews([]); reset({ figureName: '', seller: '', datePreordered: '', estimatedArrival: '', preorderPrice: null, downpayment: null }); setIsModalOpen(true); }}
+          onClick={() => { setEditingPreorder(null); setImagePreviews([]); reset({ figureName: '', seller: '', datePreordered: '', estimatedArrivalFrom: '', estimatedArrivalTo: '', preorderPrice: null, downpayment: null }); setIsModalOpen(true); }}
           className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -184,7 +226,7 @@ export function PreordersPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated flex items-center justify-between gap-4"
+              className="card-sophisticated p-4 flex items-center justify-between gap-4"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-y-0.5 sm:gap-x-8 items-baseline">
@@ -199,10 +241,17 @@ export function PreordersPage() {
                   
                   <div className="order-2 sm:order-2 flex flex-col mt-1 sm:mt-0">
                     <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                      Ordered: <span className="text-text-main">{preorder.datePreordered}</span>
+                      Ordered: <span className="text-text-main">{formatDateLong(preorder.datePreordered)}</span>
                     </span>
                     <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                      Arrival: <span className="text-text-main">{preorder.estimatedArrival}</span>
+                      Arrival: <span className="text-text-main">
+                        {preorder.estimatedArrivalFrom ? (
+                          <>
+                            {formatMonthYear(preorder.estimatedArrivalFrom)}
+                            {preorder.estimatedArrivalTo && ` — ${formatMonthYear(preorder.estimatedArrivalTo)}`}
+                          </>
+                        ) : preorder.estimatedArrival}
+                      </span>
                     </span>
                   </div>
 
@@ -246,7 +295,7 @@ export function PreordersPage() {
                   <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
-                  onClick={() => handleDelete(preorder.id)}
+                  onClick={() => handleDelete(preorder)}
                   className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
                   title="Delete"
                 >
@@ -424,14 +473,28 @@ export function PreordersPage() {
           />
         </div>
       </div>
-      <div>
-        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Estimated Arrival</label>
-        <input
-          {...register('estimatedArrival', { required: true })}
-          autoComplete="off"
-          className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-          placeholder="e.g. Q4 2026"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Arrival (From)</label>
+          <input
+            type="month"
+            {...register('estimatedArrivalFrom', { required: true })}
+            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Arrival (To) — Optional</label>
+          <input
+            type="month"
+            {...register('estimatedArrivalTo', {
+              validate: (value, formValues) => {
+                if (!value) return true;
+                return value > formValues.estimatedArrivalFrom || 'Must be at least 1 month ahead';
+              }
+            })}
+            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
+          />
+        </div>
       </div>
               
               <div>
@@ -455,6 +518,48 @@ export function PreordersPage() {
               </div>
           </fieldset>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !loading && setIsDeleteModalOpen(false)}
+        title="Cancel Protocol"
+        className="md:max-w-md"
+        disabled={loading}
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={loading}
+              className="flex-1 h-12 rounded-xl text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-bg-card transition-all disabled:opacity-30"
+            >
+              Back
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={loading}
+              className="flex-1 h-12 bg-red-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
+            >
+              {loading ? <LoadingSpinner variant="white" /> : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </>
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-center">
+          <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-text-main italic tracking-tighter">DATA PURGE REQUESTED</h3>
+          <p className="text-text-muted text-sm leading-relaxed">
+            Are you sure you want to cancel and remove <span className="text-text-main font-bold">"{preorderToDelete?.figureName}"</span> from the pipeline? This history will be lost.
+          </p>
+        </div>
       </Modal>
     </div>
   );

@@ -118,7 +118,7 @@ export function DashboardOverview() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="card-sophisticated p-2.5 sm:p-4 group cursor-default h-full flex flex-col justify-between"
+            className="card-sophisticated p-2 sm:p-4 group cursor-default h-full flex flex-col justify-between"
           >
             <div>
               <div className="text-[7px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-text-muted mb-2 font-black flex items-center gap-1 sm:gap-2">
