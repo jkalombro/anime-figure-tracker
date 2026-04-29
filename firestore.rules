@@ -18,7 +18,7 @@ service cloud.firestore {
 
     // Users
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && userId == request.auth.uid;
       allow update: if isSignedIn() && userId == request.auth.uid;
     }
@@ -45,7 +45,7 @@ service cloud.firestore {
           && data.sourceAnime is string;
       }
 
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidFigure(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidFigure(incoming());
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
@@ -60,7 +60,7 @@ service cloud.firestore {
           && data.preorderPrice is number
           && data.downpayment is number;
       }
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidPreorder(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidPreorder(incoming());
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
@@ -73,9 +73,24 @@ service cloud.firestore {
           && data.description is string
           && data.totalPrice is number;
       }
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidEquipment(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidEquipment(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Showcases
+    match /showcases/{showcaseId} {
+      function isValidShowcase(data) {
+        return data.userId is string
+          && data.name is string
+          && data.name.size() <= 100
+          && data.description is string
+          && data.description.size() <= 1000;
+      }
+      allow read: if true; // Publicly viewable
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidShowcase(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidShowcase(incoming());
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
   }

@@ -5,9 +5,10 @@ import { DashboardOverview } from './DashboardOverview';
 import { ActionFiguresPage } from './ActionFiguresPage';
 import { PreordersPage } from './PreordersPage';
 import { EquipmentsPage } from './EquipmentsPage';
+import { ShowcasePage } from './ShowcasePage';
 import { SettingsPage } from './SettingsPage';
 import { DarkModeToggle } from '../hooks/useDarkMode';
-import { LayoutDashboard, Library, Clock, Shield, User, LogOut, Settings, X } from 'lucide-react';
+import { LayoutDashboard, Library, Clock, Shield, User, LogOut, Settings, X, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -26,6 +27,7 @@ export function DashboardPage() {
     { label: 'Figures', path: '/dashboard/figures', icon: Library },
     { label: 'Preorders', path: '/dashboard/preorders', icon: Clock },
     { label: 'Equipment', path: '/dashboard/equipments', icon: Shield },
+    { label: 'Showcase', path: '/dashboard/showcase', icon: User },
   ];
 
   return (
@@ -100,6 +102,32 @@ export function DashboardPage() {
               </div>
 
               <div className="space-y-4">
+                <Link
+                  to="/dashboard/showcase"
+                  className="flex items-center gap-4 p-5 rounded-2xl bg-bg-card hover:bg-accent-primary/5 transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-bg-surface flex items-center justify-center text-text-muted group-hover:text-accent-primary transition-colors">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-text-main uppercase tracking-widest">Showcase</p>
+                    <p className="text-[10px] text-text-muted mt-0.5">Customize Profile</p>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/publicshowcase"
+                  className="flex items-center gap-4 p-5 rounded-2xl bg-bg-card hover:bg-accent-primary/5 transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-bg-surface flex items-center justify-center text-text-muted group-hover:text-accent-primary transition-colors">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-text-main uppercase tracking-widest">Community</p>
+                    <p className="text-[10px] text-text-muted mt-0.5">Explore Galleries</p>
+                  </div>
+                </Link>
+
                 <Link
                   to="/dashboard/settings"
                   className="flex items-center gap-4 p-5 rounded-2xl bg-bg-card hover:bg-accent-primary/5 transition-all group"
@@ -179,14 +207,14 @@ export function DashboardPage() {
           
           <div className="text-[10px] uppercase font-black tracking-[0.2em] text-accent-primary/40 mt-10 mb-4 ml-4">Social</div>
           <Link
-            to={`/profile/${user?.uid}`}
+            to="/publicshowcase"
              className={cn(
                "flex items-center gap-4 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.15em] transition-all group",
-               location.pathname.startsWith('/profile') ? "bg-accent-primary/5 text-accent-primary" : "text-text-muted hover:bg-bg-card/80 hover:text-text-main"
+               location.pathname.startsWith('/publicshowcase') ? "bg-accent-primary/5 text-accent-primary" : "text-text-muted hover:bg-bg-card/80 hover:text-text-main"
              )}
           >
-            <User className="w-5 h-5" />
-            <span>Showcase</span>
+            <Users className="w-5 h-5" />
+            <span>Community</span>
           </Link>
         </nav>
 
@@ -240,6 +268,7 @@ export function DashboardPage() {
                 <Route path="figures" element={<ActionFiguresPage />} />
                 <Route path="preorders" element={<PreordersPage />} />
                 <Route path="equipments" element={<EquipmentsPage />} />
+                <Route path="showcase" element={<ShowcasePage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Routes>
             </motion.div>
@@ -268,16 +297,6 @@ export function DashboardPage() {
             </Link>
           );
         })}
-        <Link
-          to={`/profile/${user?.uid}`}
-          className={cn(
-             "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all relative overflow-hidden",
-             location.pathname.startsWith('/profile') ? "text-accent-primary" : "text-text-muted"
-          )}
-        >
-          <User className="w-6 h-6" />
-          <span className="text-[9px] font-black uppercase tracking-widest">Showcase</span>
-        </Link>
       </nav>
     </div>
   );

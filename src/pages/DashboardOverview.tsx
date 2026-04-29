@@ -168,12 +168,22 @@ export function DashboardOverview() {
           </div>
         </div>
         
-        <Link 
-          to={`/profile/${user?.uid}`} 
-          className="w-full sm:w-auto px-6 py-2 bg-bg-card hover:bg-accent-primary hover:text-white border border-border-subtle rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 text-center"
-        >
-          View Exhibition Archive
-        </Link>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <Link
+            to="/dashboard/showcase"
+            className="w-full sm:w-auto px-6 py-2 bg-accent-primary text-white border border-accent-primary rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 text-center"
+          >
+            Manage Showcases
+          </Link>
+          <a 
+            href={`/publicshowcase/${user?.uid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-6 py-2 bg-bg-card hover:bg-accent-primary hover:text-white border border-border-subtle rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 text-center"
+          >
+            View Exhibition Archive
+          </a>
+        </div>
       </motion.div>
     </div>
   );

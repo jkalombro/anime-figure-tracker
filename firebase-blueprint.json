@@ -80,6 +80,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "description", "totalPrice"]
+    },
+    "Showcase": {
+      "title": "Showcase",
+      "description": "A curated collection exhibition",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "description"]
     }
   },
   "firestore": {
@@ -106,6 +119,10 @@
     "/equipments/{equipmentId}": {
       "schema": "Equipment",
       "description": "Collection of equipment"
+    },
+    "/showcases/{showcaseId}": {
+      "schema": "Showcase",
+      "description": "User curated showcases"
     }
   }
 }

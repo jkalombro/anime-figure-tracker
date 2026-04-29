@@ -10,6 +10,8 @@ import { useDarkMode } from './hooks/useDarkMode';
 import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { CommunityPage } from './pages/CommunityPage';
+import { ShowcasePage } from './pages/ShowcasePage';
 import { LoadingScreen } from './components/Loading';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -37,7 +39,8 @@ function AppContent() {
               </PrivateRoute>
             } 
           />
-          <Route path="/profile/:userId" element={<ProfilePage />} />
+          <Route path="/publicshowcase" element={<CommunityPage />} />
+          <Route path="/publicshowcase/:userId" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

@@ -3,15 +3,18 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LoadingScreen } from '../components/Loading';
-import { Box, Package, User as UserIcon, Camera, Home } from 'lucide-react';
+import { Box, Package, User as UserIcon, Camera, Home, Users, LogIn, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency } from '../lib/utils';
 import { DarkModeToggle } from '../hooks/useDarkMode';
+import { useAuth } from '../contexts/AuthContext';
 
 export function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
+  const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [figures, setFigures] = useState<any[]>([]);
+  const [showcases, setShowcases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +32,14 @@ export function ProfilePage() {
           );
           const figuresSnap = await getDocs(figuresQuery);
           setFigures(figuresSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+          const showcasesQuery = query(
+            collection(db, 'showcases'),
+            where('userId', '==', userId),
+            orderBy('createdAt', 'desc')
+          );
+          const showcasesSnap = await getDocs(showcasesQuery);
+          setShowcases(showcasesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         }
       } catch (error) {
         console.error(error);
@@ -50,9 +61,19 @@ export function ProfilePage() {
         GALLERY <span className="text-accent-primary">NOT FOUND</span>
       </motion.h2>
       <p className="text-text-muted max-w-xs font-medium uppercase tracking-widest text-xs">This curator hasn't opened their exhibition archive yet.</p>
-      <Link to="/" className="btn-primary-sophisticated flex items-center gap-2">
-        <Home className="w-5 h-5" />
-        RETURN BASE
+      {currentUser ? (
+        <Link to="/dashboard" className="btn-primary-sophisticated flex items-center gap-2">
+          <Home className="w-5 h-5" />
+          RETURN TO HOME
+        </Link>
+      ) : (
+        <Link to="/" className="btn-primary-sophisticated flex items-center gap-2">
+          <LogIn className="w-5 h-5" />
+          SIGN IN
+        </Link>
+      )}
+      <Link to="/publicshowcase" className="text-text-muted hover:text-accent-primary transition-colors font-black text-[10px] uppercase tracking-widest mt-4">
+        Explore Community instead
       </Link>
     </div>
   );
@@ -65,12 +86,23 @@ export function ProfilePage() {
            animate={{ opacity: 0.15 }}
            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_var(--color-accent-primary)_0%,_transparent_70%)]"
         />
+        <div className="absolute top-6 left-6 flex gap-4">
+           {currentUser ? (
+             <Link to="/dashboard" className="p-3 glass rounded-2xl text-text-main hover:bg-accent-primary hover:text-white transition-all" title="Go to Dashboard">
+                <LayoutDashboard className="w-5 h-5" />
+             </Link>
+           ) : (
+             <Link to="/" className="p-3 glass rounded-2xl text-text-main hover:bg-accent-primary hover:text-white transition-all" title="Sign In">
+                <LogIn className="w-5 h-5" />
+             </Link>
+           )}
+        </div>
         <div className="absolute top-6 right-6 flex gap-4">
            <div className="glass p-2 rounded-2xl flex items-center gap-2">
              <DarkModeToggle subtitle="" />
            </div>
-           <Link to="/" className="p-3 glass rounded-2xl text-text-main hover:bg-accent-primary hover:text-white transition-all">
-              <Home className="w-5 h-5" />
+           <Link to="/publicshowcase" className="p-3 glass rounded-2xl text-text-main hover:bg-accent-primary hover:text-white transition-all" title="Return to Community">
+              <Users className="w-5 h-5" />
            </Link>
         </div>
       </div>
@@ -123,6 +155,50 @@ export function ProfilePage() {
              </div>
            ))}
         </motion.div>
+
+        {showcases.length > 0 && (
+          <section className="mt-24 space-y-12">
+            <div className="flex items-center gap-6">
+              <h2 className="text-xs font-black uppercase tracking-[0.5em] text-accent-soft text-right">FEATURED EXHIBITIONS</h2>
+              <div className="h-[2px] flex-1 bg-gradient-to-l from-accent-soft/20 to-transparent" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+               {showcases.map((showcase, idx) => (
+                 <motion.div
+                   key={showcase.id}
+                   initial={{ opacity: 0, x: -20 }}
+                   whileInView={{ opacity: 1, x: 0 }}
+                   viewport={{ once: true }}
+                   transition={{ delay: idx * 0.1 }}
+                   className="card-sophisticated border-accent-soft/10 bg-gradient-to-br from-accent-soft/5 to-transparent overflow-hidden"
+                 >
+                   <div className="h-40 bg-bg-deep relative">
+                      {showcase.imageUrls?.[0] && (
+                        <img src={showcase.imageUrls[0]} alt="" className="w-full h-full object-cover opacity-80" referrerPolicy="no-referrer" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/80 to-transparent" />
+                   </div>
+                   <div className="p-6 space-y-3">
+                      <h3 className="text-xl font-black italic uppercase tracking-tight text-text-main group-hover:text-accent-soft transition-colors">{showcase.name}</h3>
+                      <p className="text-xs text-text-muted leading-relaxed line-clamp-3">
+                        {showcase.description}
+                      </p>
+                      {showcase.imageUrls?.length > 1 && (
+                         <div className="flex gap-2 pt-2">
+                            {showcase.imageUrls.slice(1).map((img: string, i: number) => (
+                               <div key={i} className="w-10 h-10 rounded-lg overflow-hidden border border-border-subtle">
+                                  <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                               </div>
+                            ))}
+                         </div>
+                      )}
+                   </div>
+                 </motion.div>
+               ))}
+            </div>
+          </section>
+        )}
 
         <section className="mt-24 space-y-12">
           <div className="flex items-center gap-6">
