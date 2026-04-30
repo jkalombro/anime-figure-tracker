@@ -42,7 +42,7 @@ export function ActionFiguresPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [makersSuggestions, setMakersSuggestions] = useState<string[]>([]);
   const [animeSuggestions, setAnimeSuggestions] = useState<string[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageItems, setImageItems] = useState<{ url: string; file?: File }[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [galleryDirection, setGalleryDirection] = useState(0);
@@ -146,25 +146,34 @@ export function ActionFiguresPage() {
 
   useEffect(() => {
     if (watchedImages && watchedImages.length > 0) {
-      const urls = Array.from(watchedImages).map(file => URL.createObjectURL(file));
-      setImagePreviews(urls);
-      return () => urls.forEach(url => URL.revokeObjectURL(url));
-    } else if (editingFigure?.imageUrls) {
-      setImagePreviews(editingFigure.imageUrls);
-    } else {
-      setImagePreviews([]);
+      const newFiles = Array.from(watchedImages);
+      const newItems = newFiles.map(file => ({
+        url: URL.createObjectURL(file),
+        file
+      }));
+      
+      setImageItems(prev => {
+        const combined = [...prev, ...newItems].slice(0, 3);
+        return combined;
+      });
+      
+      return () => newItems.forEach(item => URL.revokeObjectURL(item.url));
     }
-  }, [watchedImages, editingFigure]);
+  }, [watchedImages]);
 
   const onSubmit = async (data: FigureForm) => {
     if (!user) return;
     setLoading(true);
     try {
-      let imageUrls = editingFigure?.imageUrls || [];
-      if (data.images && data.images.length > 0) {
-        const uploadPromises = Array.from(data.images).map(file => uploadImage(file));
-        const newUrls = await Promise.all(uploadPromises);
-        imageUrls = [...imageUrls, ...newUrls].slice(0, 3);
+      const finalImageUrls: string[] = [];
+      
+      for (const item of imageItems) {
+        if (item.file) {
+          const uploadedUrl = await uploadImage(item.file);
+          finalImageUrls.push(uploadedUrl);
+        } else {
+          finalImageUrls.push(item.url);
+        }
       }
 
       const figureData: any = {
@@ -177,7 +186,7 @@ export function ActionFiguresPage() {
         sourceAnime: data.sourceAnime.trim(),
         isGifted: data.isGifted,
         description: data.description || '',
-        imageUrls,
+        imageUrls: finalImageUrls,
         createdAt: editingFigure ? editingFigure.createdAt : serverTimestamp(),
       };
 
@@ -195,7 +204,7 @@ export function ActionFiguresPage() {
 
       setIsModalOpen(false);
       setEditingFigure(null);
-      setImagePreviews([]);
+      setImageItems([]);
       reset();
     } catch (error) {
       console.error(error);
@@ -225,7 +234,7 @@ export function ActionFiguresPage() {
 
   const handleEdit = (figure: any) => {
     setEditingFigure(figure);
-    setImagePreviews(figure.imageUrls || []);
+    setImageItems(figure.imageUrls?.map((url: string) => ({ url })) || []);
     setIsModalOpen(true);
     reset({
       characterName: figure.characterName,
@@ -256,7 +265,7 @@ export function ActionFiguresPage() {
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
         </div>
         <button
-          onClick={() => { setEditingFigure(null); setImagePreviews([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, shippingCost: null, sourceAnime: '', isGifted: false, description: '' }); setIsModalOpen(true); }}
+          onClick={() => { setEditingFigure(null); setImageItems([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, shippingCost: null, sourceAnime: '', isGifted: false, description: '' }); setIsModalOpen(true); }}
           className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -714,12 +723,21 @@ export function ActionFiguresPage() {
             <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Images (up to 3)</label>
               <div className="grid grid-cols-3 gap-3">
-                {imagePreviews.map((url, i) => (
+                {imageItems.map((item, i) => (
                   <div key={i} className="aspect-square rounded-lg overflow-hidden border border-border-subtle bg-bg-surface relative group">
-                    <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={item.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setImageItems(prev => prev.filter((_, idx) => idx !== i));
+                      }}
+                      className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 ))}
-                {imagePreviews.length < 3 && (
+                {imageItems.length < 3 && (
                   <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex flex-col items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-bg-surface">
                     <Plus className="w-5 h-5" />
                     <input

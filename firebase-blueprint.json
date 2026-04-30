@@ -90,6 +90,8 @@
         "name": { "type": "string" },
         "description": { "type": "string" },
         "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "thumbnailUrl": { "type": "string" },
+        "priority": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "name", "description"]

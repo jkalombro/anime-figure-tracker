@@ -28,7 +28,7 @@ export function PreordersPage() {
   const [editingPreorder, setEditingPreorder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageItems, setImageItems] = useState<{ url: string; file?: File }[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [galleryDirection, setGalleryDirection] = useState(0);
@@ -80,25 +80,34 @@ export function PreordersPage() {
 
   useEffect(() => {
     if (watchedImages && watchedImages.length > 0) {
-      const urls = Array.from(watchedImages).map(file => URL.createObjectURL(file));
-      setImagePreviews(urls);
-      return () => urls.forEach(url => URL.revokeObjectURL(url));
-    } else if (editingPreorder?.imageUrls) {
-      setImagePreviews(editingPreorder.imageUrls);
-    } else {
-      setImagePreviews([]);
+      const newFiles = Array.from(watchedImages);
+      const newItems = newFiles.map(file => ({
+        url: URL.createObjectURL(file),
+        file
+      }));
+      
+      setImageItems(prev => {
+        const combined = [...prev, ...newItems].slice(0, 3);
+        return combined;
+      });
+      
+      return () => newItems.forEach(item => URL.revokeObjectURL(item.url));
     }
-  }, [watchedImages, editingPreorder]);
+  }, [watchedImages]);
 
   const onSubmit = async (data: PreorderForm) => {
     if (!user) return;
     setLoading(true);
     try {
-      let imageUrls = editingPreorder?.imageUrls || [];
-      if (data.images && data.images.length > 0) {
-        const uploadPromises = Array.from(data.images).map(file => uploadImage(file));
-        const newUrls = await Promise.all(uploadPromises);
-        imageUrls = [...imageUrls, ...newUrls].slice(0, 3);
+      const finalImageUrls: string[] = [];
+      
+      for (const item of imageItems) {
+        if (item.file) {
+          const uploadedUrl = await uploadImage(item.file);
+          finalImageUrls.push(uploadedUrl);
+        } else {
+          finalImageUrls.push(item.url);
+        }
       }
 
       const preorderData = {
@@ -110,7 +119,7 @@ export function PreordersPage() {
         estimatedArrivalTo: data.estimatedArrivalTo || null,
         preorderPrice: data.preorderPrice !== null ? Number(data.preorderPrice) : 0,
         downpayment: data.downpayment !== null ? Number(data.downpayment) : 0,
-        imageUrls,
+        imageUrls: finalImageUrls,
         createdAt: editingPreorder ? editingPreorder.createdAt : serverTimestamp(),
       };
 
@@ -122,7 +131,7 @@ export function PreordersPage() {
 
       setIsModalOpen(false);
       setEditingPreorder(null);
-      setImagePreviews([]);
+      setImageItems([]);
       reset();
     } catch (error) {
       console.error(error);
@@ -152,7 +161,7 @@ export function PreordersPage() {
 
   const handleEdit = (preorder: any) => {
     setEditingPreorder(preorder);
-    setImagePreviews(preorder.imageUrls || []);
+    setImageItems(preorder.imageUrls?.map((url: string) => ({ url })) || []);
     setIsModalOpen(true);
     reset({
       figureName: preorder.figureName,
@@ -202,7 +211,7 @@ export function PreordersPage() {
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
         </div>
         <button
-          onClick={() => { setEditingPreorder(null); setImagePreviews([]); reset({ figureName: '', seller: '', datePreordered: '', estimatedArrivalFrom: '', estimatedArrivalTo: '', preorderPrice: null, downpayment: null }); setIsModalOpen(true); }}
+          onClick={() => { setEditingPreorder(null); setImageItems([]); reset({ figureName: '', seller: '', datePreordered: '', estimatedArrivalFrom: '', estimatedArrivalTo: '', preorderPrice: null, downpayment: null }); setIsModalOpen(true); }}
           className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -500,10 +509,21 @@ export function PreordersPage() {
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">References (up to 3)</label>
                 <div className="grid grid-cols-3 gap-2 mb-2">
-                  {imagePreviews.map((url, i) => (
-                    <img key={i} src={url} className="aspect-square rounded-lg object-cover border border-border-subtle bg-bg-surface" referrerPolicy="no-referrer" />
+                  {imageItems.map((item, i) => (
+                    <div key={i} className="aspect-square rounded-lg border border-border-subtle bg-bg-surface relative group overflow-hidden">
+                      <img src={item.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setImageItems(prev => prev.filter((_, idx) => idx !== i));
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   ))}
-                  {imagePreviews.length < 3 && (
+                  {imageItems.length < 3 && (
                     <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-bg-surface">
                       <Plus className="w-4 h-4" />
                       <input
