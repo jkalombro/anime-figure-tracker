@@ -1,4 +1,4 @@
-# Figdex Security Specification
+# KuraDex Security Specification
 
 ## Data Invariants
 1. A user can only manage their own Action Figures, Preorders, and Equipments.

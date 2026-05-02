@@ -1,24 +1,25 @@
 {
-  "short_name": "Figdex",
-  "name": "Figdex - Anime Figure Collector Library",
+  "short_name": "KuraDex",
+  "name": "KuraDex - Anime Figure Collector Library",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "https://res.cloudinary.com/dydhpzure/image/upload/v1777735734/roqc6o1cvu1mqx2fdol5.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#22c55e",
   "background_color": "#f0fdf4"
