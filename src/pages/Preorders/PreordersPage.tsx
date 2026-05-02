@@ -5,7 +5,7 @@ import { useAuth } from '../../shared/context/AuthContext';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, ChevronLeft, ChevronRight, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, ChevronLeft, ChevronRight, X, Image as ImageIcon, Box } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -34,6 +34,9 @@ export function PreordersPage() {
   const [galleryDirection, setGalleryDirection] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [preorderToDelete, setPreorderToDelete] = useState<any>(null);
+  const [isReceivedModalOpen, setIsReceivedModalOpen] = useState(false);
+  const [preorderToMark, setPreorderToMark] = useState<any>(null);
+  const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -68,7 +71,14 @@ export function PreordersPage() {
     setInitialLoading(true);
     const q = query(collection(db, 'preorders'), where('userId', '==', user.uid));
     return onSnapshot(q, (snapshot) => {
-      setPreorders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const sorted = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a: any, b: any) => {
+          const aReceived = !!a.receivedAt;
+          const bReceived = !!b.receivedAt;
+          if (aReceived !== bReceived) return aReceived ? 1 : -1;
+          return (a.estimatedArrivalFrom || '').localeCompare(b.estimatedArrivalFrom || '');
+        });
+      setPreorders(sorted);
       setInitialLoading(false);
     });
   }, [user]);
@@ -174,6 +184,23 @@ export function PreordersPage() {
     });
   };
 
+  const confirmReceived = async () => {
+    if (!preorderToMark) return;
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'preorders', preorderToMark.id), {
+        receivedAt: receivedDate,
+        updatedAt: serverTimestamp()
+      });
+      setIsReceivedModalOpen(false);
+      setPreorderToMark(null);
+    } catch (error) {
+      console.error("Error marking as received:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatDateLong = (dateStr: string) => {
     if (!dateStr) return '';
     try {
@@ -238,46 +265,67 @@ export function PreordersPage() {
               className="card-sophisticated p-4 flex items-center justify-between gap-4"
             >
               <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-y-0.5 sm:gap-x-8 items-baseline">
+                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-y-4 sm:gap-x-8 items-start">
                   <div className="order-1">
-                    <h3 className="font-bold text-text-main truncate text-base tracking-tight">
-                      {preorder.figureName}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-text-main truncate text-base tracking-tight">
+                        {preorder.figureName}
+                      </h3>
+                      {preorder.receivedAt && (
+                        <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-wider h-fit">RECEIVED</span>
+                      )}
+                    </div>
                     <p className="text-sm text-text-muted italic truncate leading-tight">
                       {preorder.seller}
                     </p>
+                    {!preorder.receivedAt ? (
+                      <button
+                        onClick={() => {
+                          setPreorderToMark(preorder);
+                          setReceivedDate(new Date().toISOString().split('T')[0]);
+                          setIsReceivedModalOpen(true);
+                        }}
+                        className="mt-2 text-[9px] font-black uppercase tracking-widest text-accent-primary hover:text-accent-soft transition-colors flex items-center gap-1.5 w-fit bg-accent-primary/5 px-2 py-1 rounded-lg border border-accent-primary/10 hover:border-accent-primary/30"
+                      >
+                        Mark as Received
+                      </button>
+                    ) : (
+                      <span className="mt-2 text-[9px] font-black uppercase tracking-widest text-text-muted/50 flex items-center gap-1.5 grayscale">
+                        Received on {formatDateLong(preorder.receivedAt)}
+                      </span>
+                    )}
                   </div>
                   
-                  <div className="order-2 sm:order-2 flex flex-col mt-1 sm:mt-0">
-                    <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                      Ordered: <span className="text-text-main">{formatDateLong(preorder.datePreordered)}</span>
-                    </span>
-                    <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                      Arrival: <span className="text-text-main">
-                        {preorder.estimatedArrivalFrom ? (
-                          <>
-                            {formatMonthYear(preorder.estimatedArrivalFrom)}
-                            {preorder.estimatedArrivalTo && ` — ${formatMonthYear(preorder.estimatedArrivalTo)}`}
-                          </>
-                        ) : preorder.estimatedArrival}
+                  <div className="order-2 flex flex-col gap-2">
+                    <div>
+                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
+                        Ordered: <span className="text-text-main">{formatDateLong(preorder.datePreordered)}</span>
                       </span>
-                    </span>
-                  </div>
+                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
+                        Arrival: <span className="text-text-main">
+                          {preorder.estimatedArrivalFrom ? (
+                            <>
+                              {formatMonthYear(preorder.estimatedArrivalFrom)}
+                              {preorder.estimatedArrivalTo && ` — ${formatMonthYear(preorder.estimatedArrivalTo)}`}
+                            </>
+                          ) : preorder.estimatedArrival}
+                        </span>
+                      </span>
+                    </div>
 
-                  <div className="order-3 sm:order-3 mt-1 sm:mt-2 flex flex-col">
-                    <div className="flex gap-4 sm:gap-6">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 items-center border-t border-border-subtle/30 pt-2">
                       <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
                         Price: <span className="text-text-main">{formatCurrency(preorder.preorderPrice || 0)}</span>
                       </span>
                       <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
                         DP: <span className="text-text-main">{formatCurrency(preorder.downpayment || 0)}</span>
                       </span>
-                    </div>
-                    <span className="text-[10px] sm:text-xs text-text-muted font-black uppercase tracking-[0.2em] mt-0.5">
-                      Balance: <span className="text-accent-soft">
-                        {formatCurrency((preorder.preorderPrice || 0) - (preorder.downpayment || 0))}
+                      <span className="text-[10px] sm:text-xs text-text-muted font-black uppercase tracking-wide">
+                        Balance: <span className="text-accent-soft">
+                          {formatCurrency((preorder.preorderPrice || 0) - (preorder.downpayment || 0))}
+                        </span>
                       </span>
-                    </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -579,6 +627,55 @@ export function PreordersPage() {
           <p className="text-text-muted text-sm leading-relaxed">
             Are you sure you want to cancel and remove <span className="text-text-main font-bold">"{preorderToDelete?.figureName}"</span> from the pipeline? This history will be lost.
           </p>
+        </div>
+      </Modal>
+
+      {/* Mark as Received Modal */}
+      <Modal
+        isOpen={isReceivedModalOpen}
+        onClose={() => !loading && setIsReceivedModalOpen(false)}
+        title="Inventory Update"
+        className="md:max-w-md"
+        disabled={loading}
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsReceivedModalOpen(false)}
+              disabled={loading}
+              className="flex-1 h-12 rounded-xl text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-bg-card transition-all disabled:opacity-30"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmReceived}
+              disabled={loading}
+              className="flex-1 h-12 bg-accent-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-accent-soft transition-all shadow-lg shadow-accent-primary/20 disabled:opacity-30 flex items-center justify-center gap-2"
+            >
+              {loading ? <LoadingSpinner variant="white" /> : 'Confirm Check-in'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-accent-primary/10 text-accent-primary rounded-2xl flex items-center justify-center mb-4">
+              <Box className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-text-main italic tracking-tighter uppercase">Cargo Arrival</h3>
+            <p className="text-text-muted text-sm leading-relaxed mt-2">
+              Logging <span className="text-text-main font-bold">"{preorderToMark?.figureName}"</span> into the permanent collection.
+            </p>
+          </div>
+          
+          <div className="bg-bg-card p-4 rounded-2xl border border-border-subtle">
+            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Date Received</label>
+            <input
+              type="date"
+              value={receivedDate}
+              onChange={(e) => setReceivedDate(e.target.value)}
+              className="w-full h-12 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all font-bold"
+            />
+          </div>
         </div>
       </Modal>
     </div>
