@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { LoadingScreen, LoadingSpinner } from '../components/Loading';
 import { uploadImage } from '../lib/cloudinary';
-import { Plus, Edit2, Trash2, Camera, User, Save, Link as LinkIcon, Image as ImageIcon, X, Sparkles, AlertCircle, CheckCircle2, GripVertical, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, User, Save, Link as LinkIcon, Image as ImageIcon, X, Sparkles, AlertCircle, CheckCircle2, GripVertical, Check, Package } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,9 +33,12 @@ interface ShowcaseForm {
 }
 
 export function ShowcasePage() {
-  const { user, updateUserProfile } = useAuth();
+  const { user } = useAuth();
   const [showcases, setShowcases] = useState<any[]>([]);
+  const [figures, setFigures] = useState<any[]>([]);
+  const [featuredFigureIds, setFeaturedFigureIds] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFeatureModalOpen, setIsFeatureModalOpen] = useState(false);
   const [editingShowcase, setEditingShowcase] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -46,11 +49,32 @@ export function ShowcasePage() {
   useEffect(() => {
     if (!user) return;
     setInitialLoading(true);
-    const q = query(collection(db, 'showcases'), where('userId', '==', user.uid), orderBy('priority', 'asc'));
-    return onSnapshot(q, (snapshot) => {
+    
+    // Fetch Showcases
+    const qShowcases = query(collection(db, 'showcases'), where('userId', '==', user.uid), orderBy('priority', 'asc'));
+    const unsubscribeShowcases = onSnapshot(qShowcases, (snapshot) => {
       setShowcases(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Fetch All Figures for selection
+    const qFigures = query(collection(db, 'actionFigures'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    const unsubscribeFigures = onSnapshot(qFigures, (snapshot) => {
+      setFigures(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Fetch User metadata (featured IDs)
+    const unsubscribeUser = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+      if (doc.exists()) {
+        setFeaturedFigureIds(doc.data().featuredFigureIds || []);
+      }
       setInitialLoading(false);
     });
+
+    return () => {
+      unsubscribeShowcases();
+      unsubscribeFigures();
+      unsubscribeUser();
+    };
   }, [user]);
 
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
@@ -104,6 +128,21 @@ export function ShowcasePage() {
       });
       setIsThumbnailModalOpen(false);
       setActiveShowcaseForThumbnail(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveFeaturedItems = async (ids: string[]) => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        featuredFigureIds: ids
+      });
+      setIsFeatureModalOpen(false);
     } catch (error) {
       console.error(error);
     } finally {
@@ -253,38 +292,73 @@ export function ShowcasePage() {
 
       {/* Main Content Area */}
       <div className="space-y-8">
-        {/* Capacity Indicator - Integrated */}
-        <div className="card-sophisticated p-6 bg-gradient-to-r from-accent-primary/5 via-accent-soft/5 to-transparent border-border-subtle max-w-2xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h4 className="text-[10px] font-black text-text-main uppercase tracking-[0.2em]">Exhibition Capacity</h4>
-              <p className="text-[9px] text-text-muted font-bold uppercase tracking-widest">{initialLoading ? '...' : showcases.length} / 3 slots utilized</p>
-            </div>
-            <div className="flex-1 max-w-xs space-y-2">
-              <div className="h-1.5 w-full bg-bg-deep rounded-full overflow-hidden border border-border-subtle">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(showcases.length / 3) * 100}%` }}
-                  className={cn(
-                    "h-full transition-all duration-1000",
-                    showcases.length >= 3 ? "bg-accent-soft" : "bg-accent-primary"
-                  )}
-                />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Capacity Indicator - Showcases */}
+          <div className="card-sophisticated p-6 bg-gradient-to-r from-accent-primary/5 via-accent-soft/5 to-transparent border-border-subtle hover:border-accent-primary/20 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 className="text-[10px] font-black text-text-main uppercase tracking-[0.2em]">Showcase Capacity</h4>
+                <p className="text-[9px] text-text-muted font-bold uppercase tracking-widest">{initialLoading ? '...' : showcases.length} / 3 slots utilized</p>
               </div>
-              <div className="flex justify-between items-center">
-                <button 
-                  disabled={showcases.length < 2}
-                  onClick={() => {
-                    setTempShowcases([...showcases]);
-                    setIsReorderModalOpen(true);
-                  }}
-                  className="text-[8px] font-black uppercase tracking-widest text-accent-soft hover:text-accent-soft/80 transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  [ Reorder Sequence ]
-                </button>
-                {showcases.length >= 3 && !initialLoading && (
-                  <p className="text-[8px] font-black text-accent-soft uppercase tracking-widest text-right">Maximum capacity reached</p>
-                )}
+              <div className="flex-1 max-w-xs space-y-2">
+                <div className="h-1.5 w-full bg-bg-deep rounded-full overflow-hidden border border-border-subtle">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(showcases.length / 3) * 100}%` }}
+                    className={cn(
+                      "h-full transition-all duration-1000",
+                      showcases.length >= 3 ? "bg-accent-soft" : "bg-accent-primary"
+                    )}
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <button 
+                    disabled={showcases.length < 2}
+                    onClick={() => {
+                      setTempShowcases([...showcases]);
+                      setIsReorderModalOpen(true);
+                    }}
+                    className="text-[8px] font-black uppercase tracking-widest text-accent-soft hover:text-accent-soft/80 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    [ Reorder Sequence ]
+                  </button>
+                  {showcases.length >= 3 && !initialLoading && (
+                    <p className="text-[8px] font-black text-accent-soft uppercase tracking-widest text-right">Max capacity</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Capacity Indicator - Featured Items */}
+          <div className="card-sophisticated p-6 bg-gradient-to-r from-accent-soft/5 via-accent-primary/5 to-transparent border-border-subtle hover:border-accent-soft/20 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 className="text-[10px] font-black text-text-main uppercase tracking-[0.2em]">Featured Items capacity</h4>
+                <p className="text-[9px] text-text-muted font-bold uppercase tracking-widest">{initialLoading ? '...' : featuredFigureIds.length} / 9 slots utilized</p>
+              </div>
+              <div className="flex-1 max-w-xs space-y-2">
+                <div className="h-1.5 w-full bg-bg-deep rounded-full overflow-hidden border border-border-subtle">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(featuredFigureIds.length / 9) * 100}%` }}
+                    className={cn(
+                      "h-full transition-all duration-1000",
+                      featuredFigureIds.length >= 9 ? "bg-accent-primary" : "bg-accent-soft"
+                    )}
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <button 
+                    onClick={() => setIsFeatureModalOpen(true)}
+                    className="text-[8px] font-black uppercase tracking-widest text-accent-primary hover:text-accent-primary/80 transition-colors"
+                  >
+                    [ Select featured ]
+                  </button>
+                  {featuredFigureIds.length >= 9 && !initialLoading && (
+                    <p className="text-[8px] font-black text-accent-primary uppercase tracking-widest text-right">Max capacity</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -585,6 +659,92 @@ export function ShowcasePage() {
                   <div className="absolute inset-x-0 bottom-0 py-3 bg-black/40 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
                      <p className="text-[8px] text-white font-black uppercase tracking-widest text-center">Choose perspective {i + 1}</p>
                   </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Featured Items Modal */}
+      <Modal
+        isOpen={isFeatureModalOpen}
+        onClose={() => setIsFeatureModalOpen(false)}
+        title="Curate Featured Gallery"
+        className="md:max-w-4xl"
+        disabled={loading}
+        footer={
+          <button
+            onClick={() => saveFeaturedItems(featuredFigureIds)}
+            className="w-full h-14 bg-accent-soft text-white rounded-xl font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent-soft/20"
+          >
+            {loading ? <LoadingSpinner variant="white" /> : (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                Commit Featured Selection
+              </>
+            )}
+          </button>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+             <div className="space-y-1 text-center sm:text-left">
+               <h4 className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Select up to 9 Figures</h4>
+               <p className="text-xs text-text-muted">These will represent your primary collection archive on your public profile.</p>
+             </div>
+             <div className="bg-bg-deep px-4 py-2 rounded-xl border border-border-subtle flex items-center gap-3">
+                <div className="flex -space-x-1">
+                   {[...Array(9)].map((_, i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "w-3 h-3 rounded-full border-2 border-bg-deep",
+                          i < featuredFigureIds.length ? "bg-accent-primary" : "bg-border-subtle"
+                        )} 
+                      />
+                   ))}
+                </div>
+                <span className="text-[10px] font-black text-text-main tabular-nums">{featuredFigureIds.length} / 9</span>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            {figures.map((figure) => {
+              const isSelected = featuredFigureIds.includes(figure.id);
+              return (
+                <button
+                  key={figure.id}
+                  onClick={() => {
+                    if (isSelected) {
+                      setFeaturedFigureIds(prev => prev.filter(id => id !== figure.id));
+                    } else if (featuredFigureIds.length < 9) {
+                      setFeaturedFigureIds(prev => [...prev, figure.id]);
+                    }
+                  }}
+                  className={cn(
+                    "aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all group relative text-left",
+                    isSelected ? "border-accent-primary" : "border-border-subtle hover:border-accent-primary/20"
+                  )}
+                >
+                  {figure.imageUrls?.[0] ? (
+                    <img src={figure.imageUrls[0]} className={cn("w-full h-full object-cover grayscale-[0.2] transition-all", isSelected ? "grayscale-0" : "group-hover:grayscale-0")} referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full bg-bg-surface flex items-center justify-center text-text-muted/20">
+                       <Package className="w-8 h-8" />
+                    </div>
+                  )}
+                  
+                  <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                     <p className="text-[9px] text-white font-black uppercase tracking-tight truncate">{figure.characterName}</p>
+                     <p className="text-[7px] text-white/60 font-bold uppercase tracking-widest truncate">{figure.maker}</p>
+                  </div>
+
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-accent-primary rounded-lg flex items-center justify-center text-white shadow-lg">
+                       <Check className="w-4 h-4" />
+                    </div>
+                  )}
                 </button>
               );
             })}

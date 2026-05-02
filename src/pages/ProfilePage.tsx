@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, documentId } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LoadingScreen } from '../components/Loading';
 import { Box, Package, User as UserIcon, Camera, Home, Users, LogIn, LayoutDashboard, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -54,15 +54,26 @@ export function ProfilePage() {
       try {
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
-          setProfile(userDoc.data());
+          const profileData = userDoc.data();
+          setProfile(profileData);
           
-          const figuresQuery = query(
-            collection(db, 'actionFigures'), 
-            where('userId', '==', userId),
-            orderBy('createdAt', 'desc')
-          );
-          const figuresSnap = await getDocs(figuresQuery);
-          setFigures(figuresSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          // Only fetch specific featured ones if defined
+          if (profileData.featuredFigureIds && profileData.featuredFigureIds.length > 0) {
+            const figuresQuery = query(
+              collection(db, 'actionFigures'),
+              where(documentId(), 'in', profileData.featuredFigureIds)
+            );
+            const figuresSnap = await getDocs(figuresQuery);
+            setFigures(figuresSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          } else {
+            const figuresQuery = query(
+              collection(db, 'actionFigures'), 
+              where('userId', '==', userId),
+              orderBy('createdAt', 'desc')
+            );
+            const figuresSnap = await getDocs(figuresQuery);
+            setFigures(figuresSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          }
 
           const showcasesQuery = query(
             collection(db, 'showcases'),
@@ -190,7 +201,7 @@ export function ProfilePage() {
         {showcases.length > 0 && (
           <section className="mt-32 space-y-16">
             <div className="flex items-center gap-6">
-              <h2 className="text-xs font-black uppercase tracking-[0.5em] text-accent-soft text-right shrink-0">FEATURED EXHIBITIONS</h2>
+              <h2 className="text-xs font-black uppercase tracking-[0.5em] text-accent-soft text-right shrink-0">SHOWCASES</h2>
               <div className="h-[1px] flex-1 bg-gradient-to-r from-accent-soft/30 to-transparent" />
             </div>
 
@@ -275,7 +286,7 @@ export function ProfilePage() {
 
         <section className="mt-24 space-y-12">
           <div className="flex items-center gap-6">
-            <h2 className="text-xs font-black uppercase tracking-[0.5em] text-accent-primary">EXHIBITION ARCHIVE</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.5em] text-accent-primary">FEATURED ITEMS</h2>
             <div className="h-[2px] flex-1 bg-gradient-to-r from-accent-primary/20 to-transparent" />
           </div>
 

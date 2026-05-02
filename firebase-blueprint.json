@@ -8,6 +8,7 @@
         "userId": { "type": "string" },
         "displayName": { "type": "string" },
         "photoURL": { "type": "string" },
+        "featuredFigureIds": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "displayName"]
