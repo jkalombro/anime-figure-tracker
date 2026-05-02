@@ -44,7 +44,6 @@
         "figureLine": { "type": "string" },
         "scale": { "type": "string", "enum": ["1/1", "1/2", "1/4", "1/6", "1/8"] },
         "totalPrice": { "type": "number" },
-        "shippingCost": { "type": "number" },
         "sourceAnime": { "type": "string" },
         "seasonArc": { "type": "string" },
         "isGifted": { "type": "boolean" },

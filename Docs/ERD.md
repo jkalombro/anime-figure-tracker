@@ -28,7 +28,6 @@ The primary collection for physical items owned by the user.
 | `figureLine` | `string` | e.g. "Nendoroid", "Figma", "POP UP PARADE" |
 | `scale` | `enum` | 1/1, 1/2, 1/4, 1/6, 1/7, 1/8 |
 | `totalPrice` | `number` | Cost of the figure |
-| `shippingCost` | `number` | Logistics cost |
 | `sourceAnime` | `string` | Reference to an Anime title |
 | `isGifted` | `boolean` | Flag for cost exemption in totals |
 | `imageUrls` | `array<string>` | Gallery of photos |

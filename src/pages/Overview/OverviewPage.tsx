@@ -15,7 +15,6 @@ export function OverviewPage() {
     preorders: 0,
     equipment: 0,
     figureCost: 0,
-    shippingCost: 0,
     equipmentCost: 0,
   });
 
@@ -39,13 +38,11 @@ export function OverviewPage() {
 
     const unsubFigures = onSnapshot(figuresQuery, (snapshot) => {
       let cost = 0;
-      let shipping = 0;
       snapshot.docs.forEach(doc => {
         const data = doc.data();
         cost += data.totalPrice || 0;
-        shipping += data.shippingCost || 0;
       });
-      setStats(prev => ({ ...prev, figures: snapshot.size, figureCost: cost, shippingCost: shipping }));
+      setStats(prev => ({ ...prev, figures: snapshot.size, figureCost: cost }));
       figuresLoaded = true;
       checkLoading();
     });
@@ -73,7 +70,7 @@ export function OverviewPage() {
     };
   }, [user]);
 
-  const totalExpenses = stats.figureCost + stats.equipmentCost + stats.shippingCost;
+  const totalExpenses = stats.figureCost + stats.equipmentCost;
 
   const cardVariants = {
     hidden: { opacity: 0, scale: 0.9, y: 20 },
@@ -108,7 +105,7 @@ export function OverviewPage() {
             icon: Package, 
             label: "Figures", 
             value: stats.figureCost, 
-            extra: stats.shippingCost > 0 ? ` (+${formatCurrency(stats.shippingCost).replace('$', '')})` : '',
+            extra: '',
             sub: `${stats.figures} items` 
           },
           { icon: Shield, label: "Equipment", value: stats.equipmentCost, sub: `${stats.equipment} units` }

@@ -15,7 +15,6 @@ interface FigureForm {
   maker: string;
   figureLine: string;
   totalPrice: number | null;
-  shippingCost: number | null;
   sourceAnime: string;
   seasonArc?: string;
   images?: FileList;
@@ -34,6 +33,8 @@ export function ActionFiguresPage() {
   const [editingFigure, setEditingFigure] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [displayFigures, setDisplayFigures] = useState<any[]>([]);
 
   // Filtering & Sorting State
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -50,44 +51,53 @@ export function ActionFiguresPage() {
   const [figureToDelete, setFigureToDelete] = useState<any>(null);
 
   const purchasedBasePrice = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
-  const purchasedShipping = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.shippingCost || 0), 0);
   
   const giftsBasePrice = figures.filter(f => f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
-  const giftsShipping = figures.filter(f => f.isGifted).reduce((sum, f) => sum + (f.shippingCost || 0), 0);
 
   const totalBasePrice = figures.reduce((sum, f) => sum + (f.totalPrice || 0), 0);
-  const totalShipping = figures.reduce((sum, f) => sum + (f.shippingCost || 0), 0);
 
   const totalPurchasedCount = figures.filter(f => !f.isGifted).length;
   const totalGiftsCount = figures.filter(f => f.isGifted).length;
   const totalFiguresCount = figures.length;
 
-  const filteredAndSortedFigures = figures
-    .filter(figure => {
-      if (activeFilter === 'gifted' && !figure.isGifted) return false;
-      if (activeFilter === 'purchased' && figure.isGifted) return false;
+  useEffect(() => {
+    if (initialLoading) return;
+    
+    setIsFiltering(true);
+    const timer = setTimeout(() => {
+      const results = figures
+        .filter(figure => {
+          if (activeFilter === 'gifted' && !figure.isGifted) return false;
+          if (activeFilter === 'purchased' && figure.isGifted) return false;
+          
+          const searchLower = searchQuery.toLowerCase();
+          return (
+            figure.characterName.toLowerCase().includes(searchLower) ||
+            figure.sourceAnime.toLowerCase().includes(searchLower) ||
+            figure.maker.toLowerCase().includes(searchLower) ||
+            (figure.figureLine && figure.figureLine.toLowerCase().includes(searchLower))
+          );
+        })
+        .sort((a, b) => {
+          let valA = a[sortField] ?? '';
+          let valB = b[sortField] ?? '';
+          
+          if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = valB.toLowerCase();
+          }
+          
+          if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+          if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+          return 0;
+        });
       
-      const searchLower = searchQuery.toLowerCase();
-      return (
-        figure.characterName.toLowerCase().includes(searchLower) ||
-        figure.sourceAnime.toLowerCase().includes(searchLower) ||
-        figure.maker.toLowerCase().includes(searchLower) ||
-        (figure.figureLine && figure.figureLine.toLowerCase().includes(searchLower))
-      );
-    })
-    .sort((a, b) => {
-      let valA = a[sortField] ?? '';
-      let valB = b[sortField] ?? '';
-      
-      if (typeof valA === 'string') {
-        valA = valA.toLowerCase();
-        valB = valB.toLowerCase();
-      }
-      
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
+      setDisplayFigures(results);
+      setIsFiltering(false);
+    }, 400); // 400ms delay for smooth transition
+
+    return () => clearTimeout(timer);
+  }, [figures, activeFilter, searchQuery, sortField, sortOrder, initialLoading]);
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -129,13 +139,24 @@ export function ActionFiguresPage() {
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      const makersSnap = await getDocs(collection(db, 'makers'));
-      const animeSnap = await getDocs(collection(db, 'anime'));
-      setMakersSuggestions(makersSnap.docs.map(doc => doc.data().name));
-      setAnimeSuggestions(animeSnap.docs.map(doc => doc.data().title));
+      if (isModalOpen) {
+        try {
+          const makersSnap = await getDocs(collection(db, 'makers'));
+          const animeSnap = await getDocs(collection(db, 'anime'));
+          
+          // Deduplicate suggestions (case-insensitive)
+          const uniqueMakers = Array.from(new Set(makersSnap.docs.map(doc => doc.data().name.trim()))).filter(Boolean);
+          const uniqueAnime = Array.from(new Set(animeSnap.docs.map(doc => doc.data().title.trim()))).filter(Boolean);
+          
+          setMakersSuggestions(uniqueMakers);
+          setAnimeSuggestions(uniqueAnime);
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+        }
+      }
     };
     fetchSuggestions();
-  }, []);
+  }, [isModalOpen]);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { isValid } } = useForm<FigureForm>({
     mode: 'onChange'
@@ -182,7 +203,6 @@ export function ActionFiguresPage() {
         maker: data.maker.trim(),
         figureLine: data.figureLine || '',
         totalPrice: data.totalPrice !== null ? Number(data.totalPrice) : 0,
-        shippingCost: data.shippingCost !== null ? Number(data.shippingCost) : 0,
         sourceAnime: data.sourceAnime.trim(),
         isGifted: data.isGifted,
         description: data.description || '',
@@ -194,12 +214,17 @@ export function ActionFiguresPage() {
         await updateDoc(doc(db, 'actionFigures', editingFigure.id), figureData);
       } else {
         await addDoc(collection(db, 'actionFigures'), figureData);
-        if (!makersSuggestions.includes(figureData.maker)) {
-          await addDoc(collection(db, 'makers'), { name: figureData.maker, addedBy: user.uid });
-        }
-        if (!animeSuggestions.includes(figureData.sourceAnime)) {
-          await addDoc(collection(db, 'anime'), { title: figureData.sourceAnime, addedBy: user.uid });
-        }
+      }
+
+      // Sync Intellisense Collections (Case Insensitive)
+      const makerExists = makersSuggestions.some(m => m.toLowerCase() === figureData.maker.toLowerCase());
+      if (!makerExists && figureData.maker) {
+        await addDoc(collection(db, 'makers'), { name: figureData.maker, addedBy: user.uid });
+      }
+      
+      const animeExists = animeSuggestions.some(a => a.toLowerCase() === figureData.sourceAnime.toLowerCase());
+      if (!animeExists && figureData.sourceAnime) {
+        await addDoc(collection(db, 'anime'), { title: figureData.sourceAnime, addedBy: user.uid });
       }
 
       setIsModalOpen(false);
@@ -241,7 +266,6 @@ export function ActionFiguresPage() {
       maker: figure.maker,
       figureLine: figure.figureLine || '',
       totalPrice: figure.totalPrice ?? null,
-      shippingCost: figure.shippingCost ?? null,
       sourceAnime: figure.sourceAnime,
       isGifted: figure.isGifted || false,
       description: figure.description || '',
@@ -265,7 +289,7 @@ export function ActionFiguresPage() {
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
         </div>
         <button
-          onClick={() => { setEditingFigure(null); setImageItems([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, shippingCost: null, sourceAnime: '', isGifted: false, description: '' }); setIsModalOpen(true); }}
+          onClick={() => { setEditingFigure(null); setImageItems([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, sourceAnime: '', isGifted: false, description: '' }); setIsModalOpen(true); }}
           className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -281,7 +305,7 @@ export function ActionFiguresPage() {
             label: "Figure Expenses", 
             mobileLabel: "Total",
             value: totalBasePrice, 
-            extra: totalShipping > 0 ? ` (+${formatCurrency(totalShipping).replace('$', '')})` : '',
+            extra: '',
             count: totalFiguresCount, 
             icon: Package, 
             activeColor: "bg-emerald-500/15",
@@ -293,7 +317,7 @@ export function ActionFiguresPage() {
             label: "Total Purchased", 
             mobileLabel: "Purchased",
             value: purchasedBasePrice, 
-            extra: purchasedShipping > 0 ? ` (+${formatCurrency(purchasedShipping).replace('$', '')})` : '',
+            extra: '',
             count: totalPurchasedCount, 
             icon: ShoppingBag, 
             activeColor: "bg-emerald-500/15",
@@ -305,7 +329,7 @@ export function ActionFiguresPage() {
             label: "Total Gifts", 
             mobileLabel: "Gifts",
             value: giftsBasePrice, 
-            extra: giftsShipping > 0 ? ` (+${formatCurrency(giftsShipping).replace('$', '')})` : '',
+            extra: '',
             count: totalGiftsCount, 
             icon: Gift, 
             activeColor: "bg-emerald-500/15",
@@ -412,14 +436,16 @@ export function ActionFiguresPage() {
       </div>
 
       <div className="space-y-4">
-        {initialLoading ? (
+        {initialLoading || isFiltering ? (
           <div className="py-20 flex flex-col items-center justify-center gap-4 text-text-muted">
             <LoadingSpinner variant="brand" />
-            <p className="text-xs font-black uppercase tracking-widest italic animate-pulse">Sourcing Archives...</p>
+            <p className="text-xs font-black uppercase tracking-widest italic animate-pulse">
+              {initialLoading ? "Sourcing Archives..." : "Refining Catalog..."}
+            </p>
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
-            {filteredAndSortedFigures.map((figure) => (
+            {displayFigures.map((figure) => (
             <motion.div
               layout
               key={figure.id}
@@ -460,12 +486,9 @@ export function ActionFiguresPage() {
                       {figure.sourceAnime}
                     </p>
 
-                    <div className="grid grid-cols-2 gap-4 w-full max-w-[300px]">
+                    <div className="flex w-full max-w-[300px]">
                       <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
                         Price: <span className="text-text-main">{formatCurrency(figure.totalPrice)}</span>
-                      </span>
-                      <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                        Delivery: <span className={cn("text-text-main", figure.shippingCost === 0 && "text-emerald-500 font-black")}>{figure.shippingCost > 0 ? formatCurrency(figure.shippingCost) : 'FREE'}</span>
                       </span>
                     </div>
                   </div>
@@ -507,7 +530,7 @@ export function ActionFiguresPage() {
         )}
       </div>
 
-      {!initialLoading && filteredAndSortedFigures.length === 0 && (
+      {!initialLoading && !isFiltering && displayFigures.length === 0 && (
         <div className="py-32 text-center text-text-muted italic opacity-50 surface-container">
           {figures.length === 0 
             ? "Your collection catalog is empty. Start by recording your first grail." 
@@ -653,10 +676,10 @@ export function ActionFiguresPage() {
                   className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
                   placeholder="e.g. Naruto Shippuden"
                 />
-                {watchedAnime && animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase()) && a !== watchedAnime).length > 0 && (
+                {watchedAnime && animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase()) && a.toLowerCase() !== watchedAnime.toLowerCase()).length > 0 && (
                   <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
-                    {animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase())).slice(0, 5).map(a => (
-                      <button key={a} type="button" onClick={() => setValue('sourceAnime', a)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{a}</button>
+                    {animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase())).slice(0, 5).map((a, i) => (
+                      <button key={`${a}-${i}`} type="button" onClick={() => setValue('sourceAnime', a)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{a}</button>
                     ))}
                   </div>
                 )}
@@ -675,10 +698,10 @@ export function ActionFiguresPage() {
                     className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
                     placeholder="e.g. Banpresto"
                   />
-                  {watchedMaker && makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase()) && m !== watchedMaker).length > 0 && (
+                  {watchedMaker && makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase()) && m.toLowerCase() !== watchedMaker.toLowerCase()).length > 0 && (
                     <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
-                      {makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase())).slice(0, 5).map(m => (
-                        <button key={m} type="button" onClick={() => setValue('maker', m)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{m}</button>
+                      {makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase())).slice(0, 5).map((m, i) => (
+                        <button key={`${m}-${i}`} type="button" onClick={() => setValue('maker', m)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{m}</button>
                       ))}
                     </div>
                   )}
@@ -697,26 +720,15 @@ export function ActionFiguresPage() {
               </div>
             </div>
 
-            {/* Price and Shipping */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Price</label>
-                <input
-                  type="number" step="0.01"
-                  {...register('totalPrice', { required: true })}
-                  autoComplete="off"
-                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Delivery Fee (Optional)</label>
-                <input
-                  type="number" step="0.01"
-                  {...register('shippingCost')}
-                  autoComplete="off"
-                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-              </div>
+            {/* Price */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Price</label>
+              <input
+                type="number" step="0.01"
+                {...register('totalPrice', { required: true })}
+                autoComplete="off"
+                className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
             </div>
 
             {/* Images */}
