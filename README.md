@@ -1,20 +1,53 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# KuraDex 🎎
 
-# Run and deploy your AI Studio app
+[![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-039BE5?style=for-the-badge&logo=Firebase&logoColor=white)](https://firebase.google.com/)
 
-This contains everything you need to run your app locally.
+**KuraDex** is a minimalist, high-performance anime figure collection tracker and equipment manager. Designed specifically for serious collectors who want a beautiful interface to showcase their plastic crack, track preorders, and manage the logistics of display cabinets and pricing.
 
-View your app in AI Studio: https://ai.studio/apps/9f29559b-547a-45e8-b328-0ea01682aba3
+## ✨ Features
 
-## Run Locally
+- 🏛️ **Digital Gallery**: Maintain a pristine record of your scale figures and prize figures.
+- 📦 **Preorder Tracker**: Never lose track of estimated arrival dates or downpayments.
+- 🛠️ **Equipment Inventory**: Manage shelving units, display cases, and lighting costs.
+- 📈 **Collection Analytics**: Automatically calculate total collection value (including shipping costs).
+- 🖼️ **Public Showcases**: Create curated exhibitions to share your collection with the community.
+- 🌓 **Dynamic Interface**: Modern, minimalist design with support for both Light and Dark modes.
 
-**Prerequisites:**  Node.js
+## 🛠️ Tech Stack
 
+- **Frontend**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **Animations**: [Motion](https://motion.dev/) (Framer Motion)
+- **Backend Service**: [Firebase](https://firebase.google.com/) (Authentication & Firestore)
+- **State Management**: React Hooks + Context API
+- **Form Handling**: React Hook Form + [Zod](https://zod.dev/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Image Storage**: [Cloudinary](https://cloudinary.com/) (Integrated via SDK)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 Getting Started
+
+1. **Clone the repository**
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+3. **Configure Environment**:
+   Create a `.env` file with your Firebase and Cloudinary credentials (follow `.env.example`).
+4. **Run development server**:
+   ```bash
+   npm run dev
+   ```
+
+## 📁 Project Structure
+
+- `src/pages`: Individual route components (Dashboard, Profile, Settings, etc.)
+- `src/shared`: Reusable hooks, services, contexts, and utility functions.
+- `src/components`: UI components (modals, forms, cards).
+- `firebase-blueprint.json`: The source of truth for the database schema.
+
+---
+*Created with ❤️ for the Figure Collecting Community.*
