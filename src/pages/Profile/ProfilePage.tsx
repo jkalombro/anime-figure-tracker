@@ -357,7 +357,13 @@ export function ProfilePage() {
 
       <footer className="mt-40 text-center py-12 border-t border-border-subtle">
         <p className="text-text-muted/30 text-[10px] font-bold uppercase tracking-[0.4em] flex items-center justify-center gap-2">
-           Showcased on <span className="text-accent-soft">KuraDex</span>
+           Showcased on 
+           <img 
+             src="https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png" 
+             alt="" 
+             className="w-4 h-4 object-contain opacity-50"
+           />
+           <span className="text-accent-soft">KuraDex</span>
         </p>
       </footer>
 

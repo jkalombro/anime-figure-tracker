@@ -187,7 +187,12 @@ export function LandingPage() {
         </motion.div>
       </div>
 
-      <footer className="py-8 sm:mt-24 text-[9px] sm:text-[11px] uppercase tracking-[0.2em] text-text-muted/40 shrink-0">
+      <footer className="py-8 sm:mt-24 text-[9px] sm:text-[11px] uppercase tracking-[0.2em] text-text-muted/40 shrink-0 flex items-center gap-2">
+        <img 
+          src="https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png" 
+          alt="" 
+          className="w-4 h-4 object-contain opacity-40"
+        />
         © {new Date().getFullYear()} — KuraDex Gallery
       </footer>
     </div>

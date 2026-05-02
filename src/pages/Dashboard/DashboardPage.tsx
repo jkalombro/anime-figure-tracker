@@ -35,8 +35,12 @@ export function DashboardPage() {
       {/* Mobile Top Header */}
       <header className="md:hidden sticky top-0 z-50 bg-bg-surface/80 backdrop-blur-xl border-b border-border-subtle p-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-accent-primary to-accent-soft rounded-lg flex items-center justify-center text-white shadow-lg shadow-accent-primary/20">
-            <Library className="w-3.5 h-3.5" />
+          <div className="w-8 h-8 flex items-center justify-center transition-transform hover:scale-110">
+            <img 
+              src="https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png" 
+              alt="KuraDex Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-base font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
         </div>
@@ -170,8 +174,12 @@ export function DashboardPage() {
       <aside className="hidden md:flex w-72 flex-col p-10 border-r border-border-subtle bg-bg-surface fixed h-full overflow-y-auto">
         <div className="flex items-center justify-between gap-4 mb-16">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-accent-primary to-accent-soft rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-accent-primary/20 rotate-3 animate-pulse">
-              <Library className="w-5 h-5" />
+            <div className="w-12 h-12 flex items-center justify-center transition-transform hover:scale-110">
+              <img 
+                src="https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png" 
+                alt="KuraDex Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <h1 className="text-2xl font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
           </div>
