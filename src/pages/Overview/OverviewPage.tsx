@@ -5,7 +5,7 @@ import { db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { formatCurrency } from '../../shared/utils/utils';
 import { motion } from 'motion/react';
-import { TrendingUp, Package, Clock, Shield } from 'lucide-react';
+import { TrendingUp, Package, Clock, Shield, Gift } from 'lucide-react';
 
 export function OverviewPage() {
   const { user } = useAuth();
@@ -15,6 +15,7 @@ export function OverviewPage() {
     preorders: 0,
     equipment: 0,
     figureCost: 0,
+    figureGiftedValue: 0,
     equipmentCost: 0,
   });
 
@@ -37,12 +38,22 @@ export function OverviewPage() {
     };
 
     const unsubFigures = onSnapshot(figuresQuery, (snapshot) => {
-      let cost = 0;
+      let purchasedCost = 0;
+      let giftedValue = 0;
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        cost += data.totalPrice || 0;
+        if (data.isGifted) {
+          giftedValue += data.totalPrice || 0;
+        } else {
+          purchasedCost += data.totalPrice || 0;
+        }
       });
-      setStats(prev => ({ ...prev, figures: snapshot.size, figureCost: cost }));
+      setStats(prev => ({ 
+        ...prev, 
+        figures: snapshot.size, 
+        figureCost: purchasedCost,
+        figureGiftedValue: giftedValue 
+      }));
       figuresLoaded = true;
       checkLoading();
     });
@@ -70,7 +81,7 @@ export function OverviewPage() {
     };
   }, [user]);
 
-  const totalExpenses = stats.figureCost + stats.equipmentCost;
+  const totalOverallValue = stats.figureCost + stats.figureGiftedValue + stats.equipmentCost;
 
   const cardVariants = {
     hidden: { opacity: 0, scale: 0.9, y: 20 },
@@ -100,12 +111,12 @@ export function OverviewPage() {
 
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {[
-          { icon: TrendingUp, label: "Overall", value: totalExpenses, sub: `total` },
+          { icon: TrendingUp, label: "Total", value: totalOverallValue, sub: `overall value` },
           { 
             icon: Package, 
             label: "Figures", 
             value: stats.figureCost, 
-            extra: '',
+            giftedValue: stats.figureGiftedValue,
             sub: `${stats.figures} items` 
           },
           { icon: Shield, label: "Equipment", value: stats.equipmentCost, sub: `${stats.equipment} units` }
@@ -123,24 +134,30 @@ export function OverviewPage() {
                   <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 </div>
                 <span className="truncate">
-                  {item.label}
-                  <span className="hidden sm:inline"> Expenses</span>
+                  {item.label === "Total" ? "OVERALL TOTAL" : (
+                    <>
+                      {item.label}
+                      <span className="hidden sm:inline"> Expenses</span>
+                    </>
+                  )}
                 </span>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-1">
-                <p className="text-xs sm:text-lg lg:text-xl font-black text-text-main tracking-tighter truncate">
-                  {loading ? (
-                    <span className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin inline-block align-middle" />
-                  ) : (
-                    formatCurrency(item.value)
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <p className="text-xs sm:text-lg lg:text-xl font-black text-text-main tracking-tighter truncate">
+                    {loading ? (
+                      <span className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin inline-block align-middle" />
+                    ) : (
+                      formatCurrency(item.value)
+                    )}
+                  </p>
+                  {'giftedValue' in item && item.giftedValue! > 0 && (
+                    <div className="flex items-center gap-0.5 text-emerald-500 font-bold shrink-0">
+                      <span className="text-[8px] sm:text-[10px] uppercase tracking-tighter sm:tracking-normal">
+                        (+{formatCurrency(item.giftedValue!).replace('$', '')})
+                      </span>
+                    </div>
                   )}
-                </p>
-                {'extra' in item && (
-                  <span className="text-[8px] sm:text-[10px] font-bold text-accent-soft shrink-0">
-                    {item.extra}
-                  </span>
-                )}
-              </div>
+                </div>
             </div>
             <p className="text-[7px] sm:text-[10px] text-text-muted mt-2 font-semibold uppercase tracking-tight sm:tracking-wider truncate">{item.sub}</p>
           </motion.div>
