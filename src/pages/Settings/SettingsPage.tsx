@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { uploadImage } from '../lib/cloudinary';
+import { useAuth } from '../../shared/context/AuthContext';
+import { uploadImage } from '../../shared/services/cloudinary';
 import { Camera, Check, User, LogOut } from 'lucide-react';
-import { LoadingSpinner } from '../components/Loading';
+import { LoadingSpinner } from '../../shared/components/Loading';
 
 export function SettingsPage() {
   const { user, updateUserProfile, logout } = useAuth();

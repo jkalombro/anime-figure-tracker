@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { LoadingScreen } from '../components/Loading';
+import { db } from '../../shared/services/firebase';
+import { useAuth } from '../../shared/context/AuthContext';
+import { LoadingScreen } from '../../shared/components/Loading';
 import { Link } from 'react-router-dom';
 import { User, Shield, Sparkles, ExternalLink, ArrowRight, Users, Home, LogIn } from 'lucide-react';
 import { motion } from 'motion/react';

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp, orderBy, writeBatch } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { Modal } from '../components/Modal';
-import { LoadingScreen, LoadingSpinner } from '../components/Loading';
-import { uploadImage } from '../lib/cloudinary';
+import { db } from '../../shared/services/firebase';
+import { useAuth } from '../../shared/context/AuthContext';
+import { Modal } from '../../shared/components/Modal';
+import { LoadingScreen, LoadingSpinner } from '../../shared/components/Loading';
+import { uploadImage } from '../../shared/services/cloudinary';
 import { Plus, Edit2, Trash2, Camera, User, Save, Link as LinkIcon, Image as ImageIcon, X, Sparkles, AlertCircle, CheckCircle2, GripVertical, Check, Package } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { cn } from '../lib/utils';
+import { cn } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   DndContext,

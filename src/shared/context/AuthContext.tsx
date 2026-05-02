@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth, googleProvider, db } from '../services/firebase';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;

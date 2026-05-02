@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, documentId } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { LoadingScreen } from '../components/Loading';
+import { db } from '../../shared/services/firebase';
+import { LoadingScreen } from '../../shared/components/Loading';
 import { Box, Package, User as UserIcon, Camera, Home, Users, LogIn, LayoutDashboard, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { formatCurrency, cn } from '../lib/utils';
-import { DarkModeToggle } from '../hooks/useDarkMode';
-import { useAuth } from '../contexts/AuthContext';
+import { formatCurrency, cn } from '../../shared/utils/utils';
+import { DarkModeToggle } from '../../shared/hooks/useDarkMode';
+import { useAuth } from '../../shared/context/AuthContext';
 
 export function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();

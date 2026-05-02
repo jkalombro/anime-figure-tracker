@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { Modal } from '../components/Modal';
-import { LoadingSpinner } from '../components/Loading';
+import { db } from '../../shared/services/firebase';
+import { useAuth } from '../../shared/context/AuthContext';
+import { Modal } from '../../shared/components/Modal';
+import { LoadingSpinner } from '../../shared/components/Loading';
 import { Plus, Edit2, Trash2, Box } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface EquipmentForm {

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../shared/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { DarkModeToggle } from '../hooks/useDarkMode';
+import { DarkModeToggle } from '../../shared/hooks/useDarkMode';
 import { LogIn, Sparkles, Book, Box, LayoutDashboard } from 'lucide-react';
 
 export function LandingPage() {

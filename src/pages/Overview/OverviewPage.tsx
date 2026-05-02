@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { formatCurrency } from '../lib/utils';
+import { db } from '../../shared/services/firebase';
+import { useAuth } from '../../shared/context/AuthContext';
+import { formatCurrency } from '../../shared/utils/utils';
 import { motion } from 'motion/react';
 import { TrendingUp, Package, Clock, Shield } from 'lucide-react';
 
-export function DashboardOverview() {
+export function OverviewPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({

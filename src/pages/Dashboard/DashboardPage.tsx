@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { DashboardOverview } from './DashboardOverview';
-import { ActionFiguresPage } from './ActionFiguresPage';
-import { PreordersPage } from './PreordersPage';
-import { EquipmentsPage } from './EquipmentsPage';
-import { ShowcasePage } from './ShowcasePage';
-import { SettingsPage } from './SettingsPage';
-import { DarkModeToggle } from '../hooks/useDarkMode';
+import { useAuth } from '../../shared/context/AuthContext';
+import { OverviewPage } from '../Overview/OverviewPage';
+import { ActionFiguresPage } from '../Figures/ActionFiguresPage';
+import { PreordersPage } from '../Preorders/PreordersPage';
+import { EquipmentsPage } from '../Equipments/EquipmentsPage';
+import { ShowcasePage } from '../Showcase/ShowcasePage';
+import { SettingsPage } from '../Settings/SettingsPage';
+import { DarkModeToggle } from '../../shared/hooks/useDarkMode';
 import { LayoutDashboard, Library, Clock, Shield, User, LogOut, Settings, X, Users } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function DashboardPage() {
@@ -264,7 +264,7 @@ export function DashboardPage() {
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
               <Routes location={location}>
-                <Route index element={<DashboardOverview />} />
+                <Route index element={<OverviewPage />} />
                 <Route path="figures" element={<ActionFiguresPage />} />
                 <Route path="preorders" element={<PreordersPage />} />
                 <Route path="equipments" element={<EquipmentsPage />} />

@@ -5,14 +5,14 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { useDarkMode } from './hooks/useDarkMode';
-import { LandingPage } from './pages/LandingPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { CommunityPage } from './pages/CommunityPage';
-import { ShowcasePage } from './pages/ShowcasePage';
-import { LoadingScreen } from './components/Loading';
+import { AuthProvider, useAuth } from './shared/context/AuthContext';
+import { LandingPage } from './pages/Landing/LandingPage';
+import { DashboardPage } from './pages/Dashboard/DashboardPage';
+import { ProfilePage } from './pages/Profile/ProfilePage';
+import { CommunityPage } from './pages/Community/CommunityPage';
+import { ShowcasePage } from './pages/Showcase/ShowcasePage';
+import { LoadingScreen } from './shared/components/Loading';
+import { Layout } from './Layout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -21,14 +21,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
-  const { loading } = useAuth();
-  useDarkMode(); // Initialize theme logic
-
-  if (loading) return <LoadingScreen />;
-
   return (
     <Router>
-      <div className="min-h-screen">
+      <Layout>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route 
@@ -43,7 +38,7 @@ function AppContent() {
           <Route path="/publicshowcase/:userId" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </div>
+      </Layout>
     </Router>
   );
 }
