@@ -7,7 +7,6 @@ import { PreordersPage } from '../Preorders/PreordersPage';
 import { EquipmentsPage } from '../Equipments/EquipmentsPage';
 import { ShowcasePage } from '../Showcase/ShowcasePage';
 import { SettingsPage } from '../Settings/SettingsPage';
-import { DarkModeToggle } from '../../shared/hooks/useDarkMode';
 import { LayoutDashboard, Library, Clock, Shield, User, LogOut, Settings, X, Users } from 'lucide-react';
 import { cn } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -45,7 +44,6 @@ export function DashboardPage() {
           <h1 className="text-base font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
         </div>
         <div className="flex items-center gap-2">
-          <DarkModeToggle />
           <button 
             onClick={() => setIsUserMenuOpen(true)}
             className="w-8 h-8 rounded-lg overflow-hidden border border-border-subtle bg-bg-card flex items-center justify-center transition-all active:scale-95"
@@ -183,7 +181,6 @@ export function DashboardPage() {
             </div>
             <h1 className="text-2xl font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
           </div>
-          <DarkModeToggle />
         </div>
 
         <nav className="flex-1 space-y-2">

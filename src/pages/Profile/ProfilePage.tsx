@@ -6,7 +6,6 @@ import { LoadingScreen } from '../../shared/components/Loading';
 import { Box, Package, User as UserIcon, Camera, Home, Users, LogIn, LayoutDashboard, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, cn } from '../../shared/utils/utils';
-import { DarkModeToggle } from '../../shared/hooks/useDarkMode';
 import { useAuth } from '../../shared/context/AuthContext';
 
 export function ProfilePage() {
@@ -140,9 +139,6 @@ export function ProfilePage() {
            )}
         </div>
         <div className="absolute top-6 right-6 flex gap-4">
-           <div className="glass p-2 rounded-2xl flex items-center gap-2">
-             <DarkModeToggle subtitle="" />
-           </div>
            <Link to="/publicshowcase" className="p-3 glass rounded-2xl text-text-main hover:bg-accent-primary hover:text-white transition-all" title="Return to Community">
               <Users className="w-5 h-5" />
            </Link>

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../shared/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { DarkModeToggle } from '../../shared/hooks/useDarkMode';
 import { LogIn, Sparkles, Book, Box, LayoutDashboard } from 'lucide-react';
 
 export function LandingPage() {
@@ -91,7 +90,7 @@ export function LandingPage() {
 
       {/* Top Right Controls */}
       <div className="absolute top-8 right-8 z-50">
-        <DarkModeToggle />
+        
       </div>
 
       <div className="max-w-3xl w-full text-center space-y-6 sm:space-y-16 flex-1 flex flex-col justify-center">

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../shared/context/AuthContext';
 import { uploadImage } from '../../shared/services/cloudinary';
-import { Camera, Check, User, LogOut } from 'lucide-react';
+import { Camera, Check, User, LogOut, Palette } from 'lucide-react';
 import { LoadingSpinner } from '../../shared/components/Loading';
+import { DarkModeToggle } from '../../shared/hooks/useDarkMode';
 
 export function SettingsPage() {
   const { user, updateUserProfile, logout } = useAuth();
@@ -100,6 +101,22 @@ export function SettingsPage() {
             {loading ? <LoadingSpinner variant="white" /> : success ? <><Check className="w-5 h-5" /> Updated</> : 'Update Profile'}
           </button>
         </form>
+      </div>
+
+      <div className="p-8 border border-border-subtle rounded-[2rem] bg-bg-surface/40">
+        <h4 className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-4">Visual Preferences</h4>
+        <div className="flex items-center justify-between p-4 bg-bg-card rounded-xl border border-border-subtle transition-all hover:border-accent-primary/30">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary">
+              <Palette className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-black text-text-muted mb-0.5">Interface Theme</p>
+              <p className="text-sm font-bold text-text-main">Appearance Mode</p>
+            </div>
+          </div>
+          <DarkModeToggle />
+        </div>
       </div>
 
       <div className="p-8 border border-border-subtle rounded-[2rem] bg-bg-surface/40">
