@@ -15,12 +15,25 @@ export function CommunityPage() {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(50));
+        // 1. Fetch all showcases to find users who have at least one
+        const showcasesSnap = await getDocs(collection(db, 'showcases'));
+        const usersWithShowcases = new Set(showcasesSnap.docs.map(doc => doc.data().userId));
+
+        // 2. Fetch users
+        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(100));
         const querySnapshot = await getDocs(q);
-        const usersList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        
+        const usersList = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter((u: any) => {
+            const hasShowcases = usersWithShowcases.has(u.id);
+            const hasFeatured = u.featuredFigureIds && u.featuredFigureIds.length > 0;
+            return hasShowcases || hasFeatured;
+          });
+
         setUsers(usersList);
       } catch (error) {
         console.error("Error fetching users:", error);

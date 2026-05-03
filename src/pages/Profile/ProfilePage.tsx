@@ -169,30 +169,12 @@ export function ProfilePage() {
               transition={{ delay: 0.2 }}
               className="text-4xl font-black tracking-tighter uppercase italic"
             >
-              {profile.displayName}<span className="text-accent-primary">.GALLERY</span>
+              {profile.displayName}
             </motion.h1>
-            <p className="text-text-muted font-black uppercase tracking-[0.4em] text-[10px]">CURATOR SIG: {userId?.substring(0, 10).toUpperCase()}</p>
           </div>
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-6"
-        >
-           {[
-             { label: 'Figures', val: figures.length },
-             { label: 'Scaled', val: figures.filter(f => f.scale && f.scale !== '').length },
-             { label: 'Series', val: new Set(figures.map(f => f.sourceAnime)).size },
-             { label: 'Net Worth', val: formatCurrency(figures.reduce((acc, f) => acc + f.totalPrice, 0)).split('.')[0] }
-           ].map((stat, i) => (
-             <div key={i} className="card-sophisticated p-4 text-center group">
-                <p className="text-3xl font-black text-text-main tracking-tighter group-hover:text-accent-primary transition-colors">{stat.val}</p>
-                <p className="text-[10px] uppercase font-black text-text-muted tracking-[0.2em] mt-2">{stat.label}</p>
-             </div>
-           ))}
-        </motion.div>
+        <div className="mt-8" />
 
         {showcases.length > 0 && (
           <section className="mt-32 space-y-16">
@@ -295,7 +277,16 @@ export function ProfilePage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.05 }}
-                  className="group"
+                  className={cn("group", figure.imageUrls?.length > 0 && "cursor-pointer")}
+                  onClick={() => {
+                    if (figure.imageUrls?.length > 0) {
+                      setSelectedGalleryImages(figure.imageUrls);
+                      setCurrentGalleryIndex(0);
+                    } else if (figure.imageUrl) {
+                      setSelectedGalleryImages([figure.imageUrl]);
+                      setCurrentGalleryIndex(0);
+                    }
+                  }}
                 >
                   <div className="relative overflow-hidden rounded-xl aspect-[3/4] bg-bg-surface border border-border-subtle">
                     {figure.imageUrls?.[0] ? (
@@ -308,7 +299,7 @@ export function ProfilePage() {
                         />
                         {figure.imageUrls.length > 1 && (
                           <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white/90 border border-white/10">
-                            +{figure.imageUrls.length - 1} VIEWS
+                            +{figure.imageUrls.length - 1} PHOTOS
                           </div>
                         )}
                       </>
