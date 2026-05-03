@@ -95,7 +95,7 @@ export function EquipmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex sticky top-0 md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-8 transition-all">
+      <div className="flex sticky top-[56px] md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-8 transition-all">
         <div>
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Gallery Gear</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Maintenance Hub</p>

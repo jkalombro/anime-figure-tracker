@@ -285,7 +285,8 @@ export function ShowcasePage() {
             className="flex-2 sm:flex-none btn-primary-sophisticated h-11 px-8 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
-            Add Showcase
+            <span className="hidden sm:inline">Add Showcase</span>
+            <span className="sm:hidden">New</span>
           </button>
         </div>
       </div>

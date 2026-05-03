@@ -99,7 +99,7 @@ export function OverviewPage() {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="sticky top-0 md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0"
+        className="sticky top-[56px] md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0"
       >
         <h2 className="text-xl sm:text-2xl font-black tracking-tight text-text-main uppercase">
           WELCOME, <span className="text-accent-primary">COLLECTOR.</span>

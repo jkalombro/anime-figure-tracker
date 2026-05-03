@@ -30,7 +30,7 @@ export function LandingPage() {
   const currentItem = rotatingItems[index];
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden flex flex-col items-center justify-center p-4 sm:p-12">
+    <div className="relative min-h-[100dvh] overflow-hidden flex flex-col items-center p-4 sm:p-12">
       {/* Dynamic Solar Background */}
       <div className="absolute top-0 left-0 w-full h-full -z-10 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.08)_0%,_transparent_70%)]" />
       
@@ -88,12 +88,27 @@ export function LandingPage() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] border border-accent-soft/5 rounded-full -z-20 hidden lg:block"
       />
 
-      {/* Top Right Controls */}
-      <div className="absolute top-8 right-8 z-50">
-        
-      </div>
+      {/* Brand Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative z-50 flex items-center gap-4 bg-bg-surface/40 backdrop-blur-md px-8 py-3 rounded-full border border-border-subtle shadow-lg shadow-emerald-500/5 group hover:border-accent-primary/30 transition-all cursor-default mb-8 sm:mb-12 mt-4"
+      >
+        <div className="relative">
+          <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full group-hover:bg-emerald-500/30 transition-all" />
+          <img 
+            src="https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png" 
+            alt="KuraDex" 
+            className="w-10 h-10 sm:w-12 sm:h-12 object-contain relative group-hover:scale-110 transition-transform"
+          />
+        </div>
+        <span className="text-xl sm:text-2xl font-black tracking-[0.2em] uppercase text-text-main group-hover:text-accent-primary transition-colors">
+          Kura<span className="text-accent-primary">Dex</span>
+        </span>
+      </motion.div>
 
-      <div className="max-w-3xl w-full text-center space-y-6 sm:space-y-16 flex-1 flex flex-col justify-center">
+      <div className="max-w-3xl w-full text-center space-y-8 sm:space-y-16 flex-1 flex flex-col justify-center">
         <header className="space-y-3 sm:space-y-6">
           <div className="overflow-visible">
             <motion.h2
@@ -147,16 +162,25 @@ export function LandingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.0 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8"
+          className="flex flex-col items-center justify-center gap-6"
         >
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.2)" }}
             whileTap={{ scale: 0.95 }}
             onClick={login}
-            className="w-full sm:w-auto px-6 py-3 sm:px-12 sm:py-5 bg-accent-primary text-white rounded-2xl font-black text-base sm:text-xl flex items-center justify-center gap-2 sm:gap-4 transition-all shadow-xl shadow-accent-primary/10"
+            className="w-full sm:w-auto px-6 py-3 sm:px-12 sm:py-5 bg-accent-primary text-white rounded-2xl font-black text-base sm:text-xl flex items-center justify-center gap-2 sm:gap-4 transition-all shadow-xl shadow-accent-primary/10 group"
           >
-            <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
+            <LogIn className="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform" />
             ENTER GALLERY
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            onClick={() => navigate('/publicshowcase')}
+            className="flex items-center gap-2 text-text-muted hover:text-accent-primary text-[10px] sm:text-sm font-bold uppercase tracking-[0.2em] transition-colors group"
+          >
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 opacity-50 group-hover:opacity-100 group-hover:rotate-12 transition-all" />
+            View Community Showcases
           </motion.button>
         </motion.div>
 
