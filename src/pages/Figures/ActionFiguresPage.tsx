@@ -5,7 +5,7 @@ import { useAuth } from '../../shared/context/AuthContext';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingScreen, LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Gift, Image as ImageIcon, X, ArrowUp, ArrowDown, ShoppingBag, Package } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Gift, Image as ImageIcon, X, ArrowUp, ArrowDown, ShoppingBag, Package, ListFilter } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -49,6 +49,7 @@ export function ActionFiguresPage() {
   const [galleryDirection, setGalleryDirection] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [figureToDelete, setFigureToDelete] = useState<any>(null);
+  const [showSortControls, setShowSortControls] = useState(false);
 
   const purchasedBasePrice = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
   
@@ -282,8 +283,8 @@ export function ActionFiguresPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex sticky top-[56px] md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-8 transition-all">
+    <div className="space-y-4">
+      <div className="flex sticky top-[56px] md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-4 transition-all">
         <div>
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Action Figures</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
@@ -393,25 +394,36 @@ export function ActionFiguresPage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-          <input
-            type="text"
-            placeholder="Search characters, series, makers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl pl-11 pr-4 text-sm focus:ring-1 focus:ring-accent-primary outline-none transition-all"
-          />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-bg-deep rounded-full transition-colors"
-            >
-              <X className="w-3.5 h-3.5 text-text-muted" />
-            </button>
-          )}
+        <div className="relative flex-1 w-full flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search characters, series, makers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl pl-11 pr-4 text-sm focus:ring-1 focus:ring-accent-primary outline-none transition-all"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-bg-deep rounded-full transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-text-muted" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowSortControls(!showSortControls)}
+            className="md:hidden h-12 w-12 flex items-center justify-center bg-bg-surface border border-border-subtle rounded-2xl text-text-muted hover:text-accent-primary transition-colors shrink-0"
+          >
+            <ListFilter className={cn("w-5 h-5 transition-transform", showSortControls && "rotate-180")} />
+          </button>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className={cn(
+          "flex items-center gap-2 w-full md:w-auto transition-all overflow-hidden",
+          !showSortControls && "max-md:h-0 max-md:opacity-0 max-md:pointer-events-none"
+        )}>
           <div className="relative flex-1 md:w-48">
             <select
               value={sortField}
@@ -452,20 +464,20 @@ export function ActionFiguresPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated px-4 flex items-center justify-between gap-4 py-5 relative overflow-hidden"
+              className="card-sophisticated py-[5px] px-[15px] sm:px-4 sm:py-5 flex items-center justify-between gap-4 relative overflow-hidden"
             >
               {figure.isGifted && (
                 <div className="absolute top-0 left-0 z-10">
-                  <div className="bg-accent-soft/20 dark:bg-accent-soft/30 text-accent-soft px-2 py-2 rounded-br-2xl border-r border-b border-accent-soft/20 flex items-center justify-center">
-                    <Gift className="w-3.5 h-3.5 animate-pulse" />
+                  <div className="bg-accent-soft/20 dark:bg-accent-soft/30 text-accent-soft p-1 sm:px-2 sm:py-2 rounded-br-2xl border-r border-b border-accent-soft/20 flex items-center justify-center">
+                    <Gift className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 animate-pulse" />
                   </div>
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-0">
                   {/* First Row */}
                   <div className="flex items-start gap-2 flex-wrap">
-                    <h3 className="font-bold text-text-main text-base tracking-tight leading-snug">
+                    <h3 className="font-bold text-text-main text-base tracking-tight leading-tight">
                       <span>{figure.characterName}</span>
                       <span className="mx-2 text-text-muted/30 font-normal">•</span>
                       <span className="text-text-muted uppercase text-[10px] sm:text-xs font-black tracking-widest" title={figure.maker}>{abbreviateMaker(figure.maker)}</span>
@@ -481,8 +493,8 @@ export function ActionFiguresPage() {
                   </div>
 
                   {/* Second Row - Maintains current content */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline mt-1">
-                    <p className="text-sm text-text-muted italic truncate mb-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
+                    <p className="text-sm text-text-muted italic truncate">
                       {figure.sourceAnime}
                     </p>
 
@@ -495,7 +507,7 @@ export function ActionFiguresPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
+              <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
                 <button
                   onClick={() => {
                     if (figure.imageUrls?.length > 0) {
@@ -504,21 +516,21 @@ export function ActionFiguresPage() {
                     }
                   }}
                   disabled={!figure.imageUrls || figure.imageUrls.length === 0}
-                  className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
+                  className="p-1 sm:p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
                   title="View Gallery"
                 >
                   <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
                   onClick={() => handleEdit(figure)}
-                  className="p-1.5 text-text-muted hover:text-accent-soft transition-colors"
+                  className="p-1 sm:p-1.5 text-text-muted hover:text-accent-soft transition-colors"
                   title="Edit"
                 >
                   <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
                   onClick={() => handleDelete(figure)}
-                  className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
+                  className="p-1 sm:p-1.5 text-text-muted hover:text-red-400 transition-colors"
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
