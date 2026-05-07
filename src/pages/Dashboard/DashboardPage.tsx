@@ -105,19 +105,6 @@ export function DashboardPage() {
 
               <div className="space-y-4">
                 <Link
-                  to="/dashboard/showcase"
-                  className="flex items-center gap-4 p-5 rounded-2xl bg-bg-card hover:bg-accent-primary/5 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-bg-surface flex items-center justify-center text-text-muted group-hover:text-accent-primary transition-colors">
-                    <User className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-text-main uppercase tracking-widest">Showcase</p>
-                    <p className="text-[10px] text-text-muted mt-0.5">Customize Profile</p>
-                  </div>
-                </Link>
-
-                <Link
                   to="/publicshowcase"
                   className="flex items-center gap-4 p-5 rounded-2xl bg-bg-card hover:bg-accent-primary/5 transition-all group"
                 >

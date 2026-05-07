@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, documentId } from 'firebase/firestore';
 import { db } from '../../shared/services/firebase';
 import { LoadingScreen } from '../../shared/components/Loading';
+import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
 import { Box, Package, User as UserIcon, Camera, Home, Users, LogIn, LayoutDashboard, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, cn } from '../../shared/utils/utils';
@@ -17,35 +18,6 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
-  const [galleryDirection, setGalleryDirection] = useState(0);
-
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
-      opacity: 0
-    })
-  };
-
-  const paginate = (newDirection: number) => {
-    if (!selectedGalleryImages) return;
-    setGalleryDirection(newDirection);
-    setCurrentGalleryIndex(prev => {
-      let next = prev + newDirection;
-      if (next < 0) next = selectedGalleryImages.length - 1;
-      if (next >= selectedGalleryImages.length) next = 0;
-      return next;
-    });
-  };
 
   useEffect(() => {
     async function fetchProfile() {
@@ -177,7 +149,7 @@ export function ProfilePage() {
         <div className="mt-8" />
 
         {showcases.length > 0 && (
-          <section className="mt-32 space-y-16">
+          <section className="mt-12 space-y-16">
             <div className="flex items-center gap-6">
               <h2 className="text-xs font-black uppercase tracking-[0.5em] text-accent-soft text-right shrink-0">SHOWCASES</h2>
               <div className="h-[1px] flex-1 bg-gradient-to-r from-accent-soft/30 to-transparent" />
@@ -262,7 +234,7 @@ export function ProfilePage() {
           </section>
         )}
 
-        <section className="mt-24 space-y-12">
+        <section className="mt-12 space-y-12">
           <div className="flex items-center gap-6">
             <h2 className="text-xs font-black uppercase tracking-[0.5em] text-accent-primary">FEATURED ITEMS</h2>
             <div className="h-[2px] flex-1 bg-gradient-to-r from-accent-primary/20 to-transparent" />
@@ -317,14 +289,19 @@ export function ProfilePage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/90 via-transparent to-transparent opacity-80" />
                     
-                    <div className="absolute bottom-0 inset-x-0 p-6 space-y-1">
-                      <div className="flex items-center gap-2">
-                        {figure.scale && (
-                           <span className="text-[10px] text-accent-soft font-bold uppercase tracking-wider">{figure.scale}</span>
+                    <div className="absolute bottom-0 inset-x-0 p-6 space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] text-text-muted font-black uppercase tracking-widest">{figure.maker}</span>
+                        {(figure.figureLine || figure.scale) && (
+                          <>
+                            <span className="text-text-muted/30 font-normal">•</span>
+                            <span className="text-[10px] text-accent-soft font-bold uppercase tracking-wider">
+                              {figure.figureLine}{figure.figureLine && figure.scale ? ` ${figure.scale}` : figure.scale}
+                            </span>
+                          </>
                         )}
-                        <span className="text-[10px] text-text-muted font-medium uppercase tracking-widest">{figure.maker}</span>
                       </div>
-                      <h3 className="text-lg font-medium text-text-main">{figure.characterName}</h3>
+                      <h3 className="text-lg font-black tracking-tight text-text-main uppercase italic">{figure.characterName}</h3>
                       <p className="text-xs text-text-muted italic">{figure.sourceAnime}</p>
                     </div>
                   </div>
@@ -355,94 +332,14 @@ export function ProfilePage() {
       </footer>
 
       {/* Showcase Image Viewer */}
-      <AnimatePresence>
-        {selectedGalleryImages && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center"
-          >
-            <button 
-              onClick={() => setSelectedGalleryImages(null)}
-              className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-50 border border-white/10"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-              <AnimatePresence initial={false} custom={galleryDirection}>
-                <motion.div
-                  key={currentGalleryIndex}
-                  custom={galleryDirection}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 }
-                  }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={1}
-                  onDragEnd={(_, { offset, velocity }) => {
-                    const swipe = Math.abs(offset.x) * velocity.x;
-                    if (swipe < -10000) {
-                      paginate(1);
-                    } else if (swipe > 10000) {
-                      paginate(-1);
-                    }
-                  }}
-                  className="absolute inset-0 flex items-center justify-center p-4 sm:p-20 cursor-grab active:cursor-grabbing"
-                >
-                  <img
-                    src={selectedGalleryImages[currentGalleryIndex]}
-                    alt=""
-                    className="max-w-full max-h-full object-contain select-none pointer-events-none rounded-lg shadow-2xl"
-                    referrerPolicy="no-referrer"
-                  />
-                </motion.div>
-              </AnimatePresence>
-
-              {selectedGalleryImages.length > 1 && (
-                <>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); paginate(-1); }}
-                    className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
-                  >
-                    <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10 group-hover:-translate-x-1 transition-transform" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); paginate(1); }}
-                    className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
-                  >
-                    <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div className="absolute bottom-10 flex flex-col items-center gap-4">
-              <div className="flex gap-2">
-                {selectedGalleryImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentGalleryIndex(idx)}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-300",
-                      idx === currentGalleryIndex ? "w-8 bg-accent-soft" : "w-2 bg-white/20 hover:bg-white/40"
-                    )}
-                  />
-                ))}
-              </div>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
-                {currentGalleryIndex + 1} / {selectedGalleryImages.length}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {selectedGalleryImages && (
+        <FullscreenGallery 
+          images={selectedGalleryImages}
+          initialIndex={currentGalleryIndex}
+          onClose={() => setSelectedGalleryImages(null)}
+          accentColor="var(--color-accent-soft)"
+        />
+      )}
     </div>
   );
 }

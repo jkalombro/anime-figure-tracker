@@ -5,7 +5,9 @@ import { useAuth } from '../../shared/context/AuthContext';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
-import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, ChevronLeft, ChevronRight, X, Image as ImageIcon, Box } from 'lucide-react';
+import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
+import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
+import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, ChevronLeft, ChevronRight, X, Image as ImageIcon, Box, ZoomIn } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -31,40 +33,11 @@ export function PreordersPage() {
   const [imageItems, setImageItems] = useState<{ url: string; file?: File }[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
-  const [galleryDirection, setGalleryDirection] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [preorderToDelete, setPreorderToDelete] = useState<any>(null);
   const [isReceivedModalOpen, setIsReceivedModalOpen] = useState(false);
   const [preorderToMark, setPreorderToMark] = useState<any>(null);
   const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
-
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
-      opacity: 0
-    })
-  };
-
-  const paginate = (newDirection: number) => {
-    if (!selectedGalleryImages) return;
-    setGalleryDirection(newDirection);
-    setCurrentGalleryIndex(prev => {
-      let next = prev + newDirection;
-      if (next < 0) next = selectedGalleryImages.length - 1;
-      if (next >= selectedGalleryImages.length) next = 0;
-      return next;
-    });
-  };
 
   useEffect(() => {
     if (!user) return;
@@ -237,14 +210,10 @@ export function PreordersPage() {
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Preorders</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
         </div>
-        <button
+        <AddItemButton 
           onClick={() => { setEditingPreorder(null); setImageItems([]); reset({ figureName: '', seller: '', datePreordered: '', estimatedArrivalFrom: '', estimatedArrivalTo: '', preorderPrice: null, downpayment: null }); setIsModalOpen(true); }}
-          className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Add Preorder</span>
-          <span className="sm:hidden">New</span>
-        </button>
+          label="Add Preorder"
+        />
       </div>
 
       <div className="space-y-4">
@@ -369,97 +338,15 @@ export function PreordersPage() {
         <div className="py-20 text-center text-text-muted italic opacity-50 surface-container">
           No preorders currently in the pipeline.
         </div>
+      )}      {/* Custom Fullscreen Gallery */}
+      {selectedGalleryImages && (
+        <FullscreenGallery 
+          images={selectedGalleryImages}
+          initialIndex={currentGalleryIndex}
+          onClose={() => setSelectedGalleryImages(null)}
+          accentColor="var(--color-accent-primary)"
+        />
       )}
-
-      {/* Custom Fullscreen Gallery */}
-      <AnimatePresence>
-        {selectedGalleryImages && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center"
-          >
-            <button 
-              onClick={() => setSelectedGalleryImages(null)}
-              className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-50 border border-white/10"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-              <AnimatePresence initial={false} custom={galleryDirection}>
-                <motion.div
-                  key={currentGalleryIndex}
-                  custom={galleryDirection}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 }
-                  }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={1}
-                  onDragEnd={(e, { offset, velocity }) => {
-                    const swipe = Math.abs(offset.x) * velocity.x;
-                    if (swipe < -10000) {
-                      paginate(1);
-                    } else if (swipe > 10000) {
-                      paginate(-1);
-                    }
-                  }}
-                  className="absolute inset-0 flex items-center justify-center p-4 sm:p-20 cursor-grab active:cursor-grabbing"
-                >
-                  <img
-                    src={selectedGalleryImages[currentGalleryIndex]}
-                    alt=""
-                    className="max-w-full max-h-full object-contain select-none pointer-events-none rounded-sm shadow-2xl"
-                    referrerPolicy="no-referrer"
-                  />
-                </motion.div>
-              </AnimatePresence>
-
-              {selectedGalleryImages.length > 1 && (
-                <>
-                  <button
-                    onClick={() => paginate(-1)}
-                    className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
-                  >
-                    <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10 group-hover:-translate-x-1 transition-transform" />
-                  </button>
-                  <button
-                    onClick={() => paginate(1)}
-                    className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
-                  >
-                    <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div className="absolute bottom-10 flex flex-col items-center gap-4">
-              <div className="flex gap-2">
-                {selectedGalleryImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentGalleryIndex(idx)}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-300",
-                      idx === currentGalleryIndex ? "w-8 bg-accent-primary" : "w-2 bg-white/20 hover:bg-white/40"
-                    )}
-                  />
-                ))}
-              </div>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
-                {currentGalleryIndex + 1} / {selectedGalleryImages.length}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <Modal
         isOpen={isModalOpen}

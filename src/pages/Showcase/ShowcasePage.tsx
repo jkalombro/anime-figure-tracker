@@ -5,6 +5,7 @@ import { useAuth } from '../../shared/context/AuthContext';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingScreen, LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
+import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
 import { Plus, Edit2, Trash2, Camera, User, Save, Link as LinkIcon, Image as ImageIcon, X, Sparkles, AlertCircle, CheckCircle2, GripVertical, Check, Package } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { cn } from '../../shared/utils/utils';
@@ -270,7 +271,7 @@ export function ShowcasePage() {
             <LinkIcon className="w-4 h-4" />
             Public View
           </a>
-          <button
+          <AddItemButton 
             onClick={() => {
               if (showcases.length >= 3) {
                  alert("Maximum of 3 showcases reached. Delete an existing one to add more.");
@@ -281,13 +282,9 @@ export function ShowcasePage() {
               reset({ name: '', description: '' });
               setIsModalOpen(true);
             }}
+            label="Add Showcase"
             disabled={showcases.length >= 3}
-            className="flex-2 sm:flex-none btn-primary-sophisticated h-11 px-8 flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Showcase</span>
-            <span className="sm:hidden">New</span>
-          </button>
+          />
         </div>
       </div>
 

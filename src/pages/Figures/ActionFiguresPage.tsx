@@ -5,6 +5,8 @@ import { useAuth } from '../../shared/context/AuthContext';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingScreen, LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
+import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
+import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
 import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Gift, Image as ImageIcon, X, ArrowUp, ArrowDown, ShoppingBag, Package, ListFilter } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../../shared/utils/utils';
@@ -19,6 +21,8 @@ interface FigureForm {
   seasonArc?: string;
   images?: FileList;
   isGifted: boolean;
+  isSold: boolean;
+  isLost: boolean;
   description?: string;
 }
 
@@ -46,15 +50,12 @@ export function ActionFiguresPage() {
   const [imageItems, setImageItems] = useState<{ url: string; file?: File }[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
-  const [galleryDirection, setGalleryDirection] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [figureToDelete, setFigureToDelete] = useState<any>(null);
   const [showSortControls, setShowSortControls] = useState(false);
 
   const purchasedBasePrice = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
-  
   const giftsBasePrice = figures.filter(f => f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
-
   const totalBasePrice = figures.reduce((sum, f) => sum + (f.totalPrice || 0), 0);
 
   const totalPurchasedCount = figures.filter(f => !f.isGifted).length;
@@ -100,34 +101,6 @@ export function ActionFiguresPage() {
     return () => clearTimeout(timer);
   }, [figures, activeFilter, searchQuery, sortField, sortOrder, initialLoading]);
 
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
-      opacity: 0
-    })
-  };
-
-  const paginate = (newDirection: number) => {
-    if (!selectedGalleryImages) return;
-    setGalleryDirection(newDirection);
-    setCurrentGalleryIndex(prev => {
-      let next = prev + newDirection;
-      if (next < 0) next = selectedGalleryImages.length - 1;
-      if (next >= selectedGalleryImages.length) next = 0;
-      return next;
-    });
-  };
-
   useEffect(() => {
     if (!user) return;
     setInitialLoading(true);
@@ -165,6 +138,20 @@ export function ActionFiguresPage() {
   const watchedMaker = watch('maker');
   const watchedAnime = watch('sourceAnime');
   const watchedImages = watch('images');
+  const watchedIsSold = watch('isSold');
+  const watchedIsLost = watch('isLost');
+
+  useEffect(() => {
+    if (watchedIsSold) {
+      setValue('isLost', false);
+    }
+  }, [watchedIsSold, setValue]);
+
+  useEffect(() => {
+    if (watchedIsLost) {
+      setValue('isSold', false);
+    }
+  }, [watchedIsLost, setValue]);
 
   useEffect(() => {
     if (watchedImages && watchedImages.length > 0) {
@@ -206,6 +193,8 @@ export function ActionFiguresPage() {
         totalPrice: data.totalPrice !== null ? Number(data.totalPrice) : 0,
         sourceAnime: data.sourceAnime.trim(),
         isGifted: data.isGifted,
+        isSold: data.isSold || false,
+        isLost: data.isLost || false,
         description: data.description || '',
         imageUrls: finalImageUrls,
         createdAt: editingFigure ? editingFigure.createdAt : serverTimestamp(),
@@ -269,6 +258,8 @@ export function ActionFiguresPage() {
       totalPrice: figure.totalPrice ?? null,
       sourceAnime: figure.sourceAnime,
       isGifted: figure.isGifted || false,
+      isSold: figure.isSold || false,
+      isLost: figure.isLost || false,
       description: figure.description || '',
     });
   };
@@ -289,14 +280,10 @@ export function ActionFiguresPage() {
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Action Figures</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
         </div>
-        <button
-          onClick={() => { setEditingFigure(null); setImageItems([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, sourceAnime: '', isGifted: false, description: '' }); setIsModalOpen(true); }}
-          className="btn-primary-sophisticated h-10 px-4 sm:px-6 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Add New Figure</span>
-          <span className="sm:hidden">New</span>
-        </button>
+        <AddItemButton 
+          onClick={() => { setEditingFigure(null); setImageItems([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, sourceAnime: '', isGifted: false, isSold: false, isLost: false, description: '' }); setIsModalOpen(true); }}
+          label="Add New Figure"
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -464,78 +451,95 @@ export function ActionFiguresPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated py-[5px] px-[15px] sm:px-4 sm:py-5 flex items-center justify-between gap-4 relative overflow-hidden"
+              className="card-sophisticated py-3 px-4 sm:px-6 sm:py-5 flex flex-col gap-3 relative overflow-hidden"
             >
-              {figure.isGifted && (
-                <div className="absolute top-0 left-0 z-10">
-                  <div className="bg-accent-soft/20 dark:bg-accent-soft/30 text-accent-soft p-1 sm:px-2 sm:py-2 rounded-br-2xl border-r border-b border-accent-soft/20 flex items-center justify-center">
-                    <Gift className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 animate-pulse" />
-                  </div>
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col gap-0">
-                  {/* First Row */}
-                  <div className="flex items-start gap-2 flex-wrap">
-                    <h3 className="font-bold text-text-main text-base tracking-tight leading-tight">
-                      <span>{figure.characterName}</span>
-                      <span className="mx-2 text-text-muted/30 font-normal">•</span>
-                      <span className="text-text-muted uppercase text-[10px] sm:text-xs font-black tracking-widest" title={figure.maker}>{abbreviateMaker(figure.maker)}</span>
-                      {figure.figureLine && (
-                        <>
-                          <span className="mx-2 text-text-muted/30 font-normal">•</span>
-                          <span className="text-accent-soft font-bold text-xs sm:text-sm whitespace-nowrap">
-                            {figure.figureLine}
-                          </span>
-                        </>
-                      )}
-                    </h3>
-                  </div>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col gap-0 text-left">
+                    {/* First Row */}
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <h3 className="font-bold text-text-main text-base tracking-tight leading-tight">
+                        <span>{figure.characterName}</span>
+                        <span className="mx-2 text-text-muted/30 font-normal">•</span>
+                        <span className="text-text-muted uppercase text-[10px] sm:text-xs font-black tracking-widest" title={figure.maker}>{abbreviateMaker(figure.maker)}</span>
+                        {figure.figureLine && (
+                          <>
+                            <span className="mx-2 text-text-muted/30 font-normal">•</span>
+                            <span className="text-accent-soft font-bold text-xs sm:text-sm whitespace-nowrap">
+                              {figure.figureLine}
+                            </span>
+                          </>
+                        )}
+                      </h3>
+                    </div>
 
-                  {/* Second Row - Maintains current content */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
-                    <p className="text-sm text-text-muted italic truncate">
-                      {figure.sourceAnime}
-                    </p>
+                    {/* Second Row - Maintains current content */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
+                      <p className="text-sm text-text-muted italic truncate">
+                        {figure.sourceAnime}
+                      </p>
 
-                    <div className="flex w-full max-w-[300px]">
-                      <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                        Price: <span className="text-text-main">{formatCurrency(figure.totalPrice)}</span>
-                      </span>
+                      <div className="flex w-full max-w-[300px]">
+                        <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                          Price: <span className="text-text-main">{formatCurrency(figure.totalPrice)}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
+                  <button
+                    onClick={() => {
+                      if (figure.imageUrls?.length > 0) {
+                        setSelectedGalleryImages(figure.imageUrls);
+                        setCurrentGalleryIndex(0);
+                      }
+                    }}
+                    disabled={!figure.imageUrls || figure.imageUrls.length === 0}
+                    className="p-1 sm:p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
+                    title="View Gallery"
+                  >
+                    <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleEdit(figure)}
+                    className="p-1 sm:p-1.5 text-text-muted hover:text-accent-soft transition-colors"
+                    title="Edit"
+                  >
+                    <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(figure)}
+                    className="p-1 sm:p-1.5 text-text-muted hover:text-red-400 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
-                <button
-                  onClick={() => {
-                    if (figure.imageUrls?.length > 0) {
-                      setSelectedGalleryImages(figure.imageUrls);
-                      setCurrentGalleryIndex(0);
-                    }
-                  }}
-                  disabled={!figure.imageUrls || figure.imageUrls.length === 0}
-                  className="p-1 sm:p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
-                  title="View Gallery"
-                >
-                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button
-                  onClick={() => handleEdit(figure)}
-                  className="p-1 sm:p-1.5 text-text-muted hover:text-accent-soft transition-colors"
-                  title="Edit"
-                >
-                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(figure)}
-                  className="p-1 sm:p-1.5 text-text-muted hover:text-red-400 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              </div>
+              {/* Tags Row */}
+              {(figure.isGifted || figure.isSold || figure.isLost) && (
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-border-subtle/10 text-left">
+                  {figure.isGifted && (
+                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-blue-500/20 flex items-center gap-1">
+                      <Gift className="w-2.5 h-2.5" />
+                      Gift
+                    </span>
+                  )}
+                  {figure.isSold && (
+                    <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-green-500/20">
+                      Sold
+                    </span>
+                  )}
+                  {figure.isLost && (
+                    <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-red-500/20">
+                      Lost
+                    </span>
+                  )}
+                </div>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>
@@ -552,94 +556,14 @@ export function ActionFiguresPage() {
       )}
 
       {/* Custom Fullscreen Gallery */}
-      <AnimatePresence>
-        {selectedGalleryImages && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center"
-          >
-            <button 
-              onClick={() => setSelectedGalleryImages(null)}
-              className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-50 border border-white/10"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-              <AnimatePresence initial={false} custom={galleryDirection}>
-                <motion.div
-                  key={currentGalleryIndex}
-                  custom={galleryDirection}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 }
-                  }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={1}
-                  onDragEnd={(e, { offset, velocity }) => {
-                    const swipe = Math.abs(offset.x) * velocity.x;
-                    if (swipe < -10000) {
-                      paginate(1);
-                    } else if (swipe > 10000) {
-                      paginate(-1);
-                    }
-                  }}
-                  className="absolute inset-0 flex items-center justify-center p-4 sm:p-20 cursor-grab active:cursor-grabbing"
-                >
-                  <img
-                    src={selectedGalleryImages[currentGalleryIndex]}
-                    alt=""
-                    className="max-w-full max-h-full object-contain select-none pointer-events-none rounded-sm shadow-2xl"
-                    referrerPolicy="no-referrer"
-                  />
-                </motion.div>
-              </AnimatePresence>
-
-              {selectedGalleryImages.length > 1 && (
-                <>
-                  <button
-                    onClick={() => paginate(-1)}
-                    className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
-                  >
-                    <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10 group-hover:-translate-x-1 transition-transform" />
-                  </button>
-                  <button
-                    onClick={() => paginate(1)}
-                    className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-14 h-14 sm:w-20 sm:h-20 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all z-[210] group"
-                  >
-                    <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div className="absolute bottom-10 flex flex-col items-center gap-4">
-              <div className="flex gap-2">
-                {selectedGalleryImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentGalleryIndex(idx)}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-300",
-                      idx === currentGalleryIndex ? "w-8 bg-accent-primary" : "w-2 bg-white/20 hover:bg-white/40"
-                    )}
-                  />
-                ))}
-              </div>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
-                {currentGalleryIndex + 1} / {selectedGalleryImages.length}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {selectedGalleryImages && (
+        <FullscreenGallery 
+          images={selectedGalleryImages}
+          initialIndex={currentGalleryIndex}
+          onClose={() => setSelectedGalleryImages(null)}
+          accentColor="var(--color-accent-primary)"
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}
@@ -667,6 +591,57 @@ export function ActionFiguresPage() {
       >
         <form id="figure-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <fieldset disabled={loading} className="space-y-6">
+            {editingFigure && (
+              <div className="space-y-4 bg-bg-deep/50 p-4 rounded-xl border border-border-subtle/50">
+                <div className="flex items-start sm:items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isGifted-top"
+                    {...register('isGifted')}
+                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
+                  />
+                  <label htmlFor="isGifted-top" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
+                    Mark as Gift 
+                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
+                      Check this if this figure was gifted to you
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-start sm:items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isSold-top"
+                    {...register('isSold')}
+                    disabled={watchedIsLost}
+                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
+                  />
+                  <label htmlFor="isSold-top" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsLost && "opacity-30 cursor-not-allowed")}>
+                    Mark as Sold
+                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
+                      Check this if you have already sold this figure
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-start sm:items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isLost-top"
+                    {...register('isLost')}
+                    disabled={watchedIsSold}
+                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
+                  />
+                  <label htmlFor="isLost-top" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsSold && "opacity-30 cursor-not-allowed")}>
+                    Mark as Lost
+                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
+                      Check this if the figure is missing or damaged
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+
             {/* Character Name */}
             <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Character Name(s)</label>
@@ -787,21 +762,56 @@ export function ActionFiguresPage() {
               />
             </div>
 
-            {/* Gift Checkbox */}
-            <div className="flex items-start sm:items-center gap-3 px-1">
-              <input
-                type="checkbox"
-                id="isGifted"
-                {...register('isGifted')}
-                className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
-              />
-              <label htmlFor="isGifted" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
-                Mark as Gift 
-                <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                  Check this if this figure was gifted to you by someone
-                </span>
-              </label>
-            </div>
+            {!editingFigure && (
+              <div className="space-y-4">
+                <div className="flex items-start sm:items-center gap-3 px-1">
+                  <input
+                    type="checkbox"
+                    id="isGifted"
+                    {...register('isGifted')}
+                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
+                  />
+                  <label htmlFor="isGifted" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
+                    Mark as Gift 
+                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
+                      Check this if this figure was gifted to you by someone
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-start sm:items-center gap-3 px-1">
+                  <input
+                    type="checkbox"
+                    id="isSold"
+                    {...register('isSold')}
+                    disabled={watchedIsLost}
+                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
+                  />
+                  <label htmlFor="isSold" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsLost && "opacity-30 cursor-not-allowed")}>
+                    Mark as Sold
+                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
+                      Check this if you have already sold this figure
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-start sm:items-center gap-3 px-1">
+                  <input
+                    type="checkbox"
+                    id="isLost"
+                    {...register('isLost')}
+                    disabled={watchedIsSold}
+                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
+                  />
+                  <label htmlFor="isLost" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsSold && "opacity-30 cursor-not-allowed")}>
+                    Mark as Lost
+                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
+                      Check this if the figure is missing or damaged
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
           </fieldset>
         </form>
       </Modal>

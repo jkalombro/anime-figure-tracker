@@ -4,6 +4,7 @@ import { db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/Loading';
+import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
 import { Plus, Edit2, Trash2, Box } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency } from '../../shared/utils/utils';
@@ -100,13 +101,10 @@ export function EquipmentsPage() {
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Gallery Gear</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Maintenance Hub</p>
         </div>
-        <button
+        <AddItemButton 
           onClick={() => { setEditingEquipment(null); reset({ description: '', totalPrice: null }); setIsModalOpen(true); }}
-          className="btn-primary-sophisticated h-10 px-6 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Equipment</span>
-        </button>
+          label="Add Equipment"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
