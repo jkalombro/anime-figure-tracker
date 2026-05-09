@@ -275,7 +275,7 @@ export function ActionFiguresPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex sticky top-[56px] md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-4 transition-all">
+      <div className="flex sticky top-[56px] md:top-0 z-30 bg-bg-deep/80 backdrop-blur-md py-4 justify-between items-end mb-4 transition-all">
         <div>
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Action Figures</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
@@ -458,14 +458,14 @@ export function ActionFiguresPage() {
                   <div className="flex flex-col gap-0 text-left">
                     {/* First Row */}
                     <div className="flex items-start gap-2 flex-wrap">
-                      <h3 className="font-bold text-text-main text-base tracking-tight leading-tight">
+                      <h3 className="font-bold text-text-main text-sm sm:text-base tracking-tight leading-tight">
                         <span>{figure.characterName}</span>
                         <span className="mx-2 text-text-muted/30 font-normal">•</span>
-                        <span className="text-text-muted uppercase text-[10px] sm:text-xs font-black tracking-widest" title={figure.maker}>{abbreviateMaker(figure.maker)}</span>
+                        <span className="text-text-muted uppercase text-[8px] sm:text-xs font-black tracking-widest" title={figure.maker}>{abbreviateMaker(figure.maker)}</span>
                         {figure.figureLine && (
                           <>
                             <span className="mx-2 text-text-muted/30 font-normal">•</span>
-                            <span className="text-accent-soft font-bold text-xs sm:text-sm whitespace-nowrap">
+                            <span className="text-accent-soft font-bold text-[10px] sm:text-sm whitespace-nowrap">
                               {figure.figureLine}
                             </span>
                           </>
@@ -475,13 +475,13 @@ export function ActionFiguresPage() {
 
                     {/* Second Row - Maintains current content */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
-                      <p className="text-sm text-text-muted italic truncate">
+                      <p className="text-xs sm:text-sm text-text-muted italic truncate">
                         {figure.sourceAnime}
                       </p>
 
                       <div className="flex w-full max-w-[300px]">
-                        <span className="text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                          Price: <span className="text-text-main">{formatCurrency(figure.totalPrice)}</span>
+                        <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
+                          Price: <span className="text-text-main font-bold">{formatCurrency(figure.totalPrice)}</span>
                         </span>
                       </div>
                     </div>

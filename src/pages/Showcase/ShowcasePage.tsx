@@ -436,15 +436,15 @@ export function ShowcasePage() {
                     </div>
                   </div>
                   
-                  <div className="p-6 space-y-4 flex-1 flex flex-col">
+                  <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 flex-1 flex flex-col">
                     <div className="space-y-1">
-                      <h4 className="text-lg font-black text-text-main tracking-tight uppercase italic">{showcase.name}</h4>
-                      <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest flex items-center gap-2">
+                      <h4 className="text-base sm:text-lg font-black text-text-main tracking-tight uppercase italic">{showcase.name}</h4>
+                      <p className="text-[9px] sm:text-[10px] text-text-muted font-bold uppercase tracking-widest flex items-center gap-2">
                          <LinkIcon className="w-3 h-3" />
                          Collection Exhibition
                       </p>
                     </div>
-                    <p className="text-xs text-text-muted line-clamp-3 leading-relaxed flex-1">
+                    <p className="text-[11px] sm:text-xs text-text-muted line-clamp-3 leading-relaxed flex-1">
                       {showcase.description}
                     </p>
                     <div className="pt-4 border-t border-border-subtle flex items-center justify-between">

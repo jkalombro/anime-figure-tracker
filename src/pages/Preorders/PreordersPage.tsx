@@ -205,7 +205,7 @@ export function PreordersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex sticky top-[56px] md:relative z-30 bg-bg-deep/80 backdrop-blur-md md:bg-transparent py-4 md:py-0 justify-between items-end mb-8 transition-all">
+      <div className="flex sticky top-[56px] md:top-0 z-30 bg-bg-deep/80 backdrop-blur-md py-4 justify-between items-end mb-8 transition-all">
         <div>
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Preorders</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
@@ -237,14 +237,14 @@ export function PreordersPage() {
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-y-4 sm:gap-x-8 items-start">
                   <div className="order-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-text-main truncate text-base tracking-tight">
+                      <h3 className="font-bold text-text-main truncate text-sm sm:text-base tracking-tight">
                         {preorder.figureName}
                       </h3>
                       {preorder.receivedAt && (
-                        <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-wider h-fit">RECEIVED</span>
+                        <span className="text-[8px] sm:text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-wider h-fit">RECEIVED</span>
                       )}
                     </div>
-                    <p className="text-sm text-text-muted italic truncate leading-tight">
+                    <p className="text-xs sm:text-sm text-text-muted italic truncate leading-tight">
                       {preorder.seller}
                     </p>
                     {!preorder.receivedAt ? (
@@ -254,12 +254,12 @@ export function PreordersPage() {
                           setReceivedDate(new Date().toISOString().split('T')[0]);
                           setIsReceivedModalOpen(true);
                         }}
-                        className="mt-2 text-[9px] font-black uppercase tracking-widest text-accent-primary hover:text-accent-soft transition-colors flex items-center gap-1.5 w-fit bg-accent-primary/5 px-2 py-1 rounded-lg border border-accent-primary/10 hover:border-accent-primary/30"
+                        className="mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-accent-primary hover:text-accent-soft transition-colors flex items-center gap-1.5 w-fit bg-accent-primary/5 px-2 py-1 rounded-lg border border-accent-primary/10 hover:border-accent-primary/30"
                       >
                         Mark as Received
                       </button>
                     ) : (
-                      <span className="mt-2 text-[9px] font-black uppercase tracking-widest text-text-muted/50 flex items-center gap-1.5 grayscale">
+                      <span className="mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-text-muted/50 flex items-center gap-1.5 grayscale">
                         Received on {formatDateLong(preorder.receivedAt)}
                       </span>
                     )}
@@ -267,11 +267,11 @@ export function PreordersPage() {
                   
                   <div className="order-2 flex flex-col gap-2">
                     <div>
-                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
+                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
                         Ordered: <span className="text-text-main">{formatDateLong(preorder.datePreordered)}</span>
                       </span>
-                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
-                        Arrival: <span className="text-text-main">
+                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
+                        Arrival: <span className="text-text-main font-bold">
                           {preorder.estimatedArrivalFrom ? (
                             <>
                               {formatMonthYear(preorder.estimatedArrivalFrom)}
@@ -282,14 +282,14 @@ export function PreordersPage() {
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 items-center border-t border-border-subtle/30 pt-2">
-                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
-                        Price: <span className="text-text-main">{formatCurrency(preorder.preorderPrice || 0)}</span>
+                    <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 items-center border-t border-border-subtle/30 pt-2">
+                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
+                        Price: <span className="text-text-main font-bold">{formatCurrency(preorder.preorderPrice || 0)}</span>
                       </span>
-                      <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
-                        DP: <span className="text-text-main">{formatCurrency(preorder.downpayment || 0)}</span>
+                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
+                        DP: <span className="text-text-main font-bold">{formatCurrency(preorder.downpayment || 0)}</span>
                       </span>
-                      <span className="text-[10px] sm:text-xs text-text-muted font-black uppercase tracking-wide">
+                      <span className="text-[9px] sm:text-xs text-text-muted font-black uppercase tracking-wide">
                         Balance: <span className="text-accent-soft">
                           {formatCurrency((preorder.preorderPrice || 0) - (preorder.downpayment || 0))}
                         </span>
