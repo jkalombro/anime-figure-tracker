@@ -2,15 +2,17 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
-import { Modal } from '../../shared/components/Modal';
-import { LoadingScreen, LoadingSpinner } from '../../shared/components/Loading';
+import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
 import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
 import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
-import { Plus, Edit2, Trash2, Camera, Search, Shield, ChevronDown, ChevronLeft, ChevronRight, Gift, Image as ImageIcon, X, ArrowUp, ArrowDown, ShoppingBag, Package, ListFilter } from 'lucide-react';
+import { Search, ChevronDown, ImageIcon, X, ArrowUp, ArrowDown, ShoppingBag, Package, ListFilter, Gift } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency, cn } from '../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { FigureCard } from './components/FigureCard';
+import { FigureModal } from './components/FigureModal';
+import { DeleteFigureModal } from './components/DeleteFigureModal';
 
 interface FigureForm {
   characterName: string;
@@ -48,6 +50,8 @@ export function ActionFiguresPage() {
   const [makersSuggestions, setMakersSuggestions] = useState<string[]>([]);
   const [animeSuggestions, setAnimeSuggestions] = useState<string[]>([]);
   const [imageItems, setImageItems] = useState<{ url: string; file?: File }[]>([]);
+  const [showMakerSuggestions, setShowMakerSuggestions] = useState(false);
+  const [showAnimeSuggestions, setShowAnimeSuggestions] = useState(false);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -132,9 +136,10 @@ export function ActionFiguresPage() {
     fetchSuggestions();
   }, [isModalOpen]);
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { isValid } } = useForm<FigureForm>({
+  const formMethods = useForm<FigureForm>({
     mode: 'onChange'
   });
+  const { register, handleSubmit, reset, setValue, watch, formState: { isValid } } = formMethods;
   const watchedMaker = watch('maker');
   const watchedAnime = watch('sourceAnime');
   const watchedImages = watch('images');
@@ -174,6 +179,8 @@ export function ActionFiguresPage() {
     if (!user) return;
     setLoading(true);
     try {
+      setShowAnimeSuggestions(false);
+      setShowMakerSuggestions(false);
       const finalImageUrls: string[] = [];
       
       for (const item of imageItems) {
@@ -445,104 +452,19 @@ export function ActionFiguresPage() {
         ) : (
           <AnimatePresence mode="popLayout">
             {displayFigures.map((figure) => (
-            <motion.div
-              layout
-              key={figure.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated py-3 px-4 sm:px-6 sm:py-5 flex flex-col gap-3 relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col gap-0 text-left">
-                    {/* First Row */}
-                    <div className="flex items-start gap-2 flex-wrap">
-                      <h3 className="font-bold text-text-main text-sm sm:text-base tracking-tight leading-tight">
-                        <span>{figure.characterName}</span>
-                        <span className="mx-2 text-text-muted/30 font-normal">•</span>
-                        <span className="text-text-muted uppercase text-[8px] sm:text-xs font-black tracking-widest" title={figure.maker}>{abbreviateMaker(figure.maker)}</span>
-                        {figure.figureLine && (
-                          <>
-                            <span className="mx-2 text-text-muted/30 font-normal">•</span>
-                            <span className="text-accent-soft font-bold text-[10px] sm:text-sm whitespace-nowrap">
-                              {figure.figureLine}
-                            </span>
-                          </>
-                        )}
-                      </h3>
-                    </div>
-
-                    {/* Second Row - Maintains current content */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 items-baseline">
-                      <p className="text-xs sm:text-sm text-text-muted italic truncate">
-                        {figure.sourceAnime}
-                      </p>
-
-                      <div className="flex w-full max-w-[300px]">
-                        <span className="text-[10px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide whitespace-nowrap">
-                          Price: <span className="text-text-main font-bold">{formatCurrency(figure.totalPrice)}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
-                  <button
-                    onClick={() => {
-                      if (figure.imageUrls?.length > 0) {
-                        setSelectedGalleryImages(figure.imageUrls);
-                        setCurrentGalleryIndex(0);
-                      }
-                    }}
-                    disabled={!figure.imageUrls || figure.imageUrls.length === 0}
-                    className="p-1 sm:p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
-                    title="View Gallery"
-                  >
-                    <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleEdit(figure)}
-                    className="p-1 sm:p-1.5 text-text-muted hover:text-accent-soft transition-colors"
-                    title="Edit"
-                  >
-                    <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(figure)}
-                    className="p-1 sm:p-1.5 text-text-muted hover:text-red-400 transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Tags Row */}
-              {(figure.isGifted || figure.isSold || figure.isLost) && (
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-border-subtle/10 text-left">
-                  {figure.isGifted && (
-                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-blue-500/20 flex items-center gap-1">
-                      <Gift className="w-2.5 h-2.5" />
-                      Gift
-                    </span>
-                  )}
-                  {figure.isSold && (
-                    <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-green-500/20">
-                      Sold
-                    </span>
-                  )}
-                  {figure.isLost && (
-                    <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-red-500/20">
-                      Lost
-                    </span>
-                  )}
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              <FigureCard
+                key={figure.id}
+                figure={figure}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onViewGallery={(images) => {
+                  setSelectedGalleryImages(images);
+                  setCurrentGalleryIndex(0);
+                }}
+                abbreviateMaker={abbreviateMaker}
+              />
+            ))}
+          </AnimatePresence>
         )}
       </div>
 
@@ -565,298 +487,34 @@ export function ActionFiguresPage() {
         />
       )}
 
-      <Modal
+      <FigureModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingFigure ? "Update Details" : "Record New Action Figure"}
-        className="md:max-w-2xl"
-        disabled={loading}
-        footer={
-          <motion.button
-            whileHover={{ scale: (isValid && !loading) ? 1.01 : 1 }}
-            whileTap={{ scale: (isValid && !loading) ? 0.99 : 1 }}
-            disabled={loading || !isValid}
-            form="figure-form"
-            type="submit"
-            className="w-full h-14 bg-accent-primary text-white rounded-xl font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent-primary/20 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
-          >
-            {loading ? <LoadingSpinner variant="white" /> : (
-              <>
-                <Shield className="w-4 h-4" />
-                {editingFigure ? 'Update Details' : 'Save details'}
-              </>
-            )}
-          </motion.button>
-        }
-      >
-        <form id="figure-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <fieldset disabled={loading} className="space-y-6">
-            {editingFigure && (
-              <div className="space-y-4 bg-bg-deep/50 p-4 rounded-xl border border-border-subtle/50">
-                <div className="flex items-start sm:items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="isGifted-top"
-                    {...register('isGifted')}
-                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
-                  />
-                  <label htmlFor="isGifted-top" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
-                    Mark as Gift 
-                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                      Check this if this figure was gifted to you
-                    </span>
-                  </label>
-                </div>
+        editingFigure={editingFigure}
+        loading={loading}
+        formMethods={formMethods}
+        onSubmit={onSubmit}
+        watchedIsSold={watchedIsSold}
+        watchedIsLost={watchedIsLost}
+        watchedAnime={watchedAnime}
+        watchedMaker={watchedMaker}
+        animeSuggestions={animeSuggestions}
+        makersSuggestions={makersSuggestions}
+        showAnimeSuggestions={showAnimeSuggestions}
+        showMakerSuggestions={showMakerSuggestions}
+        setShowAnimeSuggestions={setShowAnimeSuggestions}
+        setShowMakerSuggestions={setShowMakerSuggestions}
+        imageItems={imageItems}
+        setImageItems={setImageItems}
+      />
 
-                <div className="flex items-start sm:items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="isSold-top"
-                    {...register('isSold')}
-                    disabled={watchedIsLost}
-                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
-                  />
-                  <label htmlFor="isSold-top" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsLost && "opacity-30 cursor-not-allowed")}>
-                    Mark as Sold
-                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                      Check this if you have already sold this figure
-                    </span>
-                  </label>
-                </div>
-
-                <div className="flex items-start sm:items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="isLost-top"
-                    {...register('isLost')}
-                    disabled={watchedIsSold}
-                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
-                  />
-                  <label htmlFor="isLost-top" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsSold && "opacity-30 cursor-not-allowed")}>
-                    Mark as Lost
-                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                      Check this if the figure is missing or damaged
-                    </span>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* Character Name */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Character Name(s)</label>
-              <input
-                {...register('characterName', { required: true })}
-                autoComplete="off"
-                className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                placeholder="e.g. Uchiha Itachi"
-              />
-            </div>
-
-            {/* Source Series */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Source Series</label>
-              <div className="relative">
-                <input
-                  {...register('sourceAnime', { required: true })}
-                  autoComplete="off"
-                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. Naruto Shippuden"
-                />
-                {watchedAnime && animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase()) && a.toLowerCase() !== watchedAnime.toLowerCase()).length > 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
-                    {animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase())).slice(0, 5).map((a, i) => (
-                      <button key={`${a}-${i}`} type="button" onClick={() => setValue('sourceAnime', a)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{a}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Maker and Line Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Maker */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Maker</label>
-                <div className="relative">
-                  <input
-                    {...register('maker', { required: true })}
-                    autoComplete="off"
-                    className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                    placeholder="e.g. Banpresto"
-                  />
-                  {watchedMaker && makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase()) && m.toLowerCase() !== watchedMaker.toLowerCase()).length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
-                      {makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase())).slice(0, 5).map((m, i) => (
-                        <button key={`${m}-${i}`} type="button" onClick={() => setValue('maker', m)} className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors">{m}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Line */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Series/Line/Scale (optional)</label>
-                <input
-                  {...register('figureLine')}
-                  autoComplete="off"
-                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. 20th anniversary series"
-                />
-              </div>
-            </div>
-
-            {/* Price */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Price</label>
-              <input
-                type="number" step="0.01"
-                {...register('totalPrice', { required: true })}
-                autoComplete="off"
-                className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-            </div>
-
-            {/* Images */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Images (up to 3)</label>
-              <div className="grid grid-cols-3 gap-3">
-                {imageItems.map((item, i) => (
-                  <div key={i} className="aspect-square rounded-lg overflow-hidden border border-border-subtle bg-bg-surface relative group">
-                    <img src={item.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setImageItems(prev => prev.filter((_, idx) => idx !== i));
-                      }}
-                      className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                {imageItems.length < 3 && (
-                  <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex flex-col items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-bg-surface">
-                    <Plus className="w-5 h-5" />
-                    <input
-                      type="file"
-                      multiple
-                      {...register('images')}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      accept="image/*"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Additional Details */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Additional Details (optional)</label>
-              <textarea
-                {...register('description')}
-                rows={3}
-                className="w-full bg-bg-surface border border-border-subtle rounded-xl px-4 py-3 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm resize-none"
-                placeholder="e.g. Put the extra details of your figure here like the height, special value, etc"
-              />
-            </div>
-
-            {!editingFigure && (
-              <div className="space-y-4">
-                <div className="flex items-start sm:items-center gap-3 px-1">
-                  <input
-                    type="checkbox"
-                    id="isGifted"
-                    {...register('isGifted')}
-                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
-                  />
-                  <label htmlFor="isGifted" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
-                    Mark as Gift 
-                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                      Check this if this figure was gifted to you by someone
-                    </span>
-                  </label>
-                </div>
-
-                <div className="flex items-start sm:items-center gap-3 px-1">
-                  <input
-                    type="checkbox"
-                    id="isSold"
-                    {...register('isSold')}
-                    disabled={watchedIsLost}
-                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
-                  />
-                  <label htmlFor="isSold" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsLost && "opacity-30 cursor-not-allowed")}>
-                    Mark as Sold
-                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                      Check this if you have already sold this figure
-                    </span>
-                  </label>
-                </div>
-
-                <div className="flex items-start sm:items-center gap-3 px-1">
-                  <input
-                    type="checkbox"
-                    id="isLost"
-                    {...register('isLost')}
-                    disabled={watchedIsSold}
-                    className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
-                  />
-                  <label htmlFor="isLost" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsSold && "opacity-30 cursor-not-allowed")}>
-                    Mark as Lost
-                    <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                      Check this if the figure is missing or damaged
-                    </span>
-                  </label>
-                </div>
-              </div>
-            )}
-          </fieldset>
-        </form>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
+      <DeleteFigureModal
         isOpen={isDeleteModalOpen}
-        onClose={() => !loading && setIsDeleteModalOpen(false)}
-        title="Confirm Disposal"
-        className="md:max-w-md"
-        disabled={loading}
-        footer={
-          <div className="flex gap-3">
-            <button
-              onClick={() => setIsDeleteModalOpen(false)}
-              disabled={loading}
-              className="flex-1 h-12 rounded-xl text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-bg-card transition-all disabled:opacity-30"
-            >
-              Abort
-            </button>
-            <button
-              onClick={confirmDelete}
-              disabled={loading}
-              className="flex-1 h-12 bg-red-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
-            >
-              {loading ? <LoadingSpinner variant="white" /> : (
-                <>
-                  <Trash2 className="w-4 h-4" />
-                  Dispose
-                </>
-              )}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4 text-center">
-          <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-text-main italic tracking-tighter">INITIATING DATA DISPOSAL</h3>
-          <p className="text-text-muted text-sm leading-relaxed">
-            Are you sure you want to remove <span className="text-text-main font-bold">"{figureToDelete?.characterName}"</span> from the catalog archive? This action cannot be reversed.
-          </p>
-        </div>
-      </Modal>
+        onClose={() => setIsDeleteModalOpen(false)}
+        loading={loading}
+        figureToDelete={figureToDelete}
+        onConfirm={confirmDelete}
+      />
 
       {/* removed loading screen overlay */}
     </div>

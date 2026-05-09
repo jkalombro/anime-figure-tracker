@@ -2,15 +2,17 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
-import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
 import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
 import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
-import { Plus, Edit2, Trash2, Camera, Calendar, ChevronDown, ChevronLeft, ChevronRight, X, Image as ImageIcon, Box, ZoomIn } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { formatCurrency, cn } from '../../shared/utils/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { formatCurrency } from '../../shared/utils/utils';
+import { AnimatePresence } from 'motion/react';
+import { PreorderCard } from './components/PreorderCard';
+import { PreorderModal } from './components/PreorderModal';
+import { DeletePreorderModal } from './components/DeletePreorderModal';
+import { MarkReceivedModal } from './components/MarkReceivedModal';
 
 interface PreorderForm {
   figureName: string;
@@ -56,9 +58,10 @@ export function PreordersPage() {
     });
   }, [user]);
 
-  const { register, handleSubmit, reset, watch, formState: { isValid } } = useForm<PreorderForm>({
+  const formMethods = useForm<PreorderForm>({
     mode: 'onChange'
   });
+  const { reset, watch } = formMethods;
   const watchedImages = watch('images');
 
   useEffect(() => {
@@ -225,112 +228,25 @@ export function PreordersPage() {
         ) : (
           <AnimatePresence mode="popLayout">
             {preorders.map((preorder) => (
-            <motion.div
-              layout
-              key={preorder.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="card-sophisticated p-4 flex items-center justify-between gap-4"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-y-4 sm:gap-x-8 items-start">
-                  <div className="order-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-text-main truncate text-sm sm:text-base tracking-tight">
-                        {preorder.figureName}
-                      </h3>
-                      {preorder.receivedAt && (
-                        <span className="text-[8px] sm:text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-wider h-fit">RECEIVED</span>
-                      )}
-                    </div>
-                    <p className="text-xs sm:text-sm text-text-muted italic truncate leading-tight">
-                      {preorder.seller}
-                    </p>
-                    {!preorder.receivedAt ? (
-                      <button
-                        onClick={() => {
-                          setPreorderToMark(preorder);
-                          setReceivedDate(new Date().toISOString().split('T')[0]);
-                          setIsReceivedModalOpen(true);
-                        }}
-                        className="mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-accent-primary hover:text-accent-soft transition-colors flex items-center gap-1.5 w-fit bg-accent-primary/5 px-2 py-1 rounded-lg border border-accent-primary/10 hover:border-accent-primary/30"
-                      >
-                        Mark as Received
-                      </button>
-                    ) : (
-                      <span className="mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-text-muted/50 flex items-center gap-1.5 grayscale">
-                        Received on {formatDateLong(preorder.receivedAt)}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="order-2 flex flex-col gap-2">
-                    <div>
-                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
-                        Ordered: <span className="text-text-main">{formatDateLong(preorder.datePreordered)}</span>
-                      </span>
-                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide block">
-                        Arrival: <span className="text-text-main font-bold">
-                          {preorder.estimatedArrivalFrom ? (
-                            <>
-                              {formatMonthYear(preorder.estimatedArrivalFrom)}
-                              {preorder.estimatedArrivalTo && ` — ${formatMonthYear(preorder.estimatedArrivalTo)}`}
-                            </>
-                          ) : preorder.estimatedArrival}
-                        </span>
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 items-center border-t border-border-subtle/30 pt-2">
-                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
-                        Price: <span className="text-text-main font-bold">{formatCurrency(preorder.preorderPrice || 0)}</span>
-                      </span>
-                      <span className="text-[9px] sm:text-xs text-text-muted font-semibold uppercase tracking-wide">
-                        DP: <span className="text-text-main font-bold">{formatCurrency(preorder.downpayment || 0)}</span>
-                      </span>
-                      <span className="text-[9px] sm:text-xs text-text-muted font-black uppercase tracking-wide">
-                        Balance: <span className="text-accent-soft">
-                          {formatCurrency((preorder.preorderPrice || 0) - (preorder.downpayment || 0))}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
-                <button
-                  onClick={() => {
-                    if (preorder.imageUrls?.length > 0) {
-                      setSelectedGalleryImages(preorder.imageUrls);
-                      setCurrentGalleryIndex(0);
-                    }
-                  }}
-                  disabled={!preorder.imageUrls || preorder.imageUrls.length === 0}
-                  className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
-                  title="View Gallery"
-                >
-                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button
-                  onClick={() => handleEdit(preorder)}
-                  className="p-1.5 text-text-muted hover:text-accent-soft transition-colors"
-                  title="Edit"
-                >
-                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(preorder)}
-                  className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              <PreorderCard
+                key={preorder.id}
+                preorder={preorder}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onMarkReceived={(p) => {
+                  setPreorderToMark(p);
+                  setReceivedDate(new Date().toISOString().split('T')[0]);
+                  setIsReceivedModalOpen(true);
+                }}
+                onViewGallery={(images) => {
+                  setSelectedGalleryImages(images);
+                  setCurrentGalleryIndex(0);
+                }}
+                formatDateLong={formatDateLong}
+                formatMonthYear={formatMonthYear}
+              />
+            ))}
+          </AnimatePresence>
         )}
       </div>
 
@@ -338,7 +254,8 @@ export function PreordersPage() {
         <div className="py-20 text-center text-text-muted italic opacity-50 surface-container">
           No preorders currently in the pipeline.
         </div>
-      )}      {/* Custom Fullscreen Gallery */}
+      )}
+
       {selectedGalleryImages && (
         <FullscreenGallery 
           images={selectedGalleryImages}
@@ -348,223 +265,34 @@ export function PreordersPage() {
         />
       )}
 
-      <Modal
+      <PreorderModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingPreorder ? "Update Pipeline" : "Log New Preorder"}
-        className="md:max-w-xl"
-        disabled={loading}
-        footer={
-          <button
-            disabled={loading || !isValid}
-            form="preorder-form"
-            type="submit"
-            className="w-full h-14 bg-accent-primary text-white rounded-xl font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent-primary/20 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
-          >
-            {loading ? <LoadingSpinner variant="white" /> : (editingPreorder ? 'Update Pipeline' : 'Lock in Preorder')}
-          </button>
-        }
-      >
-        <form id="preorder-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <fieldset disabled={loading} className="space-y-4">
-      <div>
-        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Target Item</label>
-        <input
-          {...register('figureName', { required: true })}
-          autoComplete="off"
-          className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-          placeholder="Figure Name"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-           <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Provider</label>
-           <input
-             {...register('seller', { required: true })}
-             autoComplete="off"
-             className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-             placeholder="Shop Name"
-           />
-        </div>
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Ordered On</label>
-          <input
-            type="date"
-            {...register('datePreordered', { required: true })}
-            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Preorder Price</label>
-          <input
-            type="number" step="0.01"
-            {...register('preorderPrice', { required: true })}
-            autoComplete="off"
-            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all font-bold"
-            placeholder="0.00"
-          />
-        </div>
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Downpayment</label>
-          <input
-            type="number" step="0.01"
-            {...register('downpayment', { required: true })}
-            autoComplete="off"
-            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all font-bold"
-            placeholder="0.00"
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Arrival (From)</label>
-          <input
-            type="month"
-            {...register('estimatedArrivalFrom', { required: true })}
-            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-          />
-        </div>
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Arrival (To) — Optional</label>
-          <input
-            type="month"
-            {...register('estimatedArrivalTo', {
-              validate: (value, formValues) => {
-                if (!value) return true;
-                return value > formValues.estimatedArrivalFrom || 'Must be at least 1 month ahead';
-              }
-            })}
-            className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none text-sm transition-all"
-          />
-        </div>
-      </div>
-              
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">References (up to 3)</label>
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  {imageItems.map((item, i) => (
-                    <div key={i} className="aspect-square rounded-lg border border-border-subtle bg-bg-surface relative group overflow-hidden">
-                      <img src={item.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setImageItems(prev => prev.filter((_, idx) => idx !== i));
-                        }}
-                        className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {imageItems.length < 3 && (
-                    <div className="aspect-square rounded-lg border-2 border-dashed border-border-subtle flex items-center justify-center text-text-muted relative hover:border-accent-primary transition-colors bg-bg-surface">
-                      <Plus className="w-4 h-4" />
-                      <input
-                        type="file" multiple
-                        {...register('images')}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        accept="image/*"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-          </fieldset>
-        </form>
-      </Modal>
+        editingPreorder={editingPreorder}
+        loading={loading}
+        formMethods={formMethods}
+        onSubmit={onSubmit}
+        imageItems={imageItems}
+        setImageItems={setImageItems}
+      />
 
-      {/* Delete Confirmation Modal */}
-      <Modal
+      <DeletePreorderModal
         isOpen={isDeleteModalOpen}
-        onClose={() => !loading && setIsDeleteModalOpen(false)}
-        title="Cancel Protocol"
-        className="md:max-w-md"
-        disabled={loading}
-        footer={
-          <div className="flex gap-3">
-            <button
-              onClick={() => setIsDeleteModalOpen(false)}
-              disabled={loading}
-              className="flex-1 h-12 rounded-xl text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-bg-card transition-all disabled:opacity-30"
-            >
-              Back
-            </button>
-            <button
-              onClick={confirmDelete}
-              disabled={loading}
-              className="flex-1 h-12 bg-red-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
-            >
-              {loading ? <LoadingSpinner variant="white" /> : (
-                <>
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </>
-              )}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4 text-center">
-          <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-text-main italic tracking-tighter">DATA PURGE REQUESTED</h3>
-          <p className="text-text-muted text-sm leading-relaxed">
-            Are you sure you want to cancel and remove <span className="text-text-main font-bold">"{preorderToDelete?.figureName}"</span> from the pipeline? This history will be lost.
-          </p>
-        </div>
-      </Modal>
+        onClose={() => setIsDeleteModalOpen(false)}
+        loading={loading}
+        preorderToDelete={preorderToDelete}
+        onConfirm={confirmDelete}
+      />
 
-      {/* Mark as Received Modal */}
-      <Modal
+      <MarkReceivedModal
         isOpen={isReceivedModalOpen}
-        onClose={() => !loading && setIsReceivedModalOpen(false)}
-        title="Inventory Update"
-        className="md:max-w-md"
-        disabled={loading}
-        footer={
-          <div className="flex gap-3">
-            <button
-              onClick={() => setIsReceivedModalOpen(false)}
-              disabled={loading}
-              className="flex-1 h-12 rounded-xl text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-bg-card transition-all disabled:opacity-30"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmReceived}
-              disabled={loading}
-              className="flex-1 h-12 bg-accent-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-accent-soft transition-all shadow-lg shadow-accent-primary/20 disabled:opacity-30 flex items-center justify-center gap-2"
-            >
-              {loading ? <LoadingSpinner variant="white" /> : 'Confirm Check-in'}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-6">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-accent-primary/10 text-accent-primary rounded-2xl flex items-center justify-center mb-4">
-              <Box className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold text-text-main italic tracking-tighter uppercase">Cargo Arrival</h3>
-            <p className="text-text-muted text-sm leading-relaxed mt-2">
-              Logging <span className="text-text-main font-bold">"{preorderToMark?.figureName}"</span> into the permanent collection.
-            </p>
-          </div>
-          
-          <div className="bg-bg-card p-4 rounded-2xl border border-border-subtle">
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Date Received</label>
-            <input
-              type="date"
-              value={receivedDate}
-              onChange={(e) => setReceivedDate(e.target.value)}
-              className="w-full h-12 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all font-bold"
-            />
-          </div>
-        </div>
-      </Modal>
+        onClose={() => setIsReceivedModalOpen(false)}
+        loading={loading}
+        preorderToMark={preorderToMark}
+        receivedDate={receivedDate}
+        setReceivedDate={setReceivedDate}
+        onConfirm={confirmReceived}
+      />
     </div>
   );
 }
