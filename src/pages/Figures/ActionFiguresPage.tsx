@@ -59,13 +59,13 @@ export function ActionFiguresPage() {
   const [figureToDelete, setFigureToDelete] = useState<any>(null);
   const [showSortControls, setShowSortControls] = useState(false);
 
-  const purchasedBasePrice = figures.filter(f => !f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
-  const giftsBasePrice = figures.filter(f => f.isGifted).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
-  const totalBasePrice = figures.reduce((sum, f) => sum + (f.totalPrice || 0), 0);
+  const purchasedBasePrice = figures.filter(f => !f.isGifted && !f.isSold).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
+  const giftsBasePrice = figures.filter(f => f.isGifted && !f.isSold).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
+  const totalBasePrice = figures.filter(f => !f.isSold).reduce((sum, f) => sum + (f.totalPrice || 0), 0);
 
-  const totalPurchasedCount = figures.filter(f => !f.isGifted).length;
-  const totalGiftsCount = figures.filter(f => f.isGifted).length;
-  const totalFiguresCount = figures.length;
+  const totalPurchasedCount = figures.filter(f => !f.isGifted && !f.isSold).length;
+  const totalGiftsCount = figures.filter(f => f.isGifted && !f.isSold).length;
+  const totalFiguresCount = figures.filter(f => !f.isSold).length;
 
   useEffect(() => {
     if (initialLoading) return;

@@ -21,7 +21,7 @@ export function FigureCard({ figure, onEdit, onDelete, onViewGallery, abbreviate
       exit={{ opacity: 0, scale: 0.95 }}
       className="card-sophisticated p-4 sm:px-6 sm:py-4 relative overflow-hidden"
     >
-      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_140px_140px] gap-x-4 sm:gap-x-12 gap-y-3 sm:gap-y-1 items-center">
+      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_180px_150px] gap-x-4 sm:gap-x-12 gap-y-3 sm:gap-y-1 items-center">
         {/* Figure Info Column - Row 1, Col 1 on Mobile. Row 1-2, Col 1 on Desktop */}
         <div className="min-w-0 sm:row-span-2 space-y-0">
           <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0 leading-tight">
@@ -77,8 +77,8 @@ export function FigureCard({ figure, onEdit, onDelete, onViewGallery, abbreviate
         </div>
 
         {/* Tags Column - Row 2, Col 1 on Mobile. Row 1, Col 2 on Desktop */}
-        <div className="flex items-center min-h-[20px] sm:col-start-2 sm:row-start-1 sm:justify-start py-1 sm:py-0">
-          <div className="flex flex-wrap gap-1.5 sm:justify-end">
+        <div className="flex items-center min-h-[20px] sm:col-start-2 sm:row-start-1 py-1 sm:py-0">
+          <div className="flex flex-wrap gap-1.5">
             {figure.isGifted ? (
               <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 text-[8px] sm:text-[9px] font-black uppercase tracking-widest rounded border border-amber-500/20 flex items-center gap-1">
                 <Gift className="w-2.5 h-2.5" />
@@ -86,7 +86,7 @@ export function FigureCard({ figure, onEdit, onDelete, onViewGallery, abbreviate
               </span>
             ) : (
               <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] sm:text-[9px] font-black uppercase tracking-widest rounded border border-blue-500/20">
-                Purchased: {figure.condition || 'MSIB'}
+                Purchased: {figure.condition === 'PRE-ORDERED' ? 'PO' : (figure.condition || 'MSIB')}
               </span>
             )}
             {figure.isSold && (
