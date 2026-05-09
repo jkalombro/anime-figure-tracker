@@ -14,6 +14,17 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, footer, className, disabled }: ModalProps) {
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (

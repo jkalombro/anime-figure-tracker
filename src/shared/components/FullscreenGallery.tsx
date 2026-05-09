@@ -206,6 +206,13 @@ export function FullscreenGallery({
   const [direction, setDirection] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const paginate = (newDirection: number) => {
     if (isZoomed) return;
     setDirection(newDirection);
