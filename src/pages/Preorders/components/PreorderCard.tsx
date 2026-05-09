@@ -23,6 +23,15 @@ export function PreorderCard({
   formatDateLong,
   formatMonthYear,
 }: PreorderCardProps) {
+  const abbreviateMaker = (maker: string) => {
+    if (!maker) return '';
+    const words = maker.trim().split(/\s+/);
+    if (words.length > 1) {
+      return words.map(word => word[0].toUpperCase()).join('');
+    }
+    return maker;
+  };
+
   return (
     <motion.div
       layout
@@ -34,17 +43,33 @@ export function PreorderCard({
       <div className="flex-1 min-w-0">
         <div className="flex flex-col sm:grid sm:grid-cols-2 gap-y-4 sm:gap-x-8 items-start">
           <div className="order-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-text-main truncate text-sm sm:text-base tracking-tight">
-                {preorder.figureName}
+            <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0 leading-tight">
+              <h3 className="font-bold text-text-main text-sm sm:text-base tracking-tight">
+                {preorder.characterName || preorder.figureName}
               </h3>
               {preorder.receivedAt && (
-                <span className="text-[8px] sm:text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-wider h-fit">
+                <span className="text-[8px] sm:text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-wider h-fit ml-1">
                   RECEIVED
                 </span>
               )}
+              {preorder.maker && (
+                <>
+                  <span className="text-text-muted/30 font-normal shrink-0">•</span>
+                  <span className="text-text-muted uppercase text-[9px] sm:text-[10px] font-black tracking-widest shrink-0" title={preorder.maker}>
+                    {abbreviateMaker(preorder.maker)}
+                  </span>
+                </>
+              )}
+              {preorder.figureLine && (
+                <>
+                  <span className="text-text-muted/30 font-normal shrink-0">•</span>
+                  <span className="text-accent-soft font-bold text-[10px] sm:text-xs">
+                    {preorder.figureLine}
+                  </span>
+                </>
+              )}
             </div>
-            <p className="text-xs sm:text-sm text-text-muted italic truncate leading-tight">
+            <p className="text-[11px] sm:text-xs text-text-muted italic leading-tight mt-0.5">
               {preorder.seller}
             </p>
             {!preorder.receivedAt ? (
@@ -105,24 +130,24 @@ export function PreorderCard({
             }
           }}
           disabled={!preorder.imageUrls || preorder.imageUrls.length === 0}
-          className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed"
+          className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed group"
           title="View Gallery"
         >
-          <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+          <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
         </button>
         <button
           onClick={() => onEdit(preorder)}
-          className="p-1.5 text-text-muted hover:text-accent-soft transition-colors"
+          className="p-1.5 text-text-muted hover:text-accent-soft transition-colors group"
           title="Edit"
         >
-          <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
         </button>
         <button
           onClick={() => onDelete(preorder)}
-          className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
+          className="p-1.5 text-text-muted hover:text-red-400 transition-colors group"
           title="Delete"
         >
-          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
         </button>
       </div>
     </motion.div>

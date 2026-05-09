@@ -59,16 +59,20 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "figureName": { "type": "string" },
+        "characterName": { "type": "string" },
+        "sourceAnime": { "type": "string" },
+        "maker": { "type": "string" },
+        "figureLine": { "type": "string" },
         "seller": { "type": "string" },
         "datePreordered": { "type": "string", "format": "date" },
-        "estimatedArrival": { "type": "string" },
+        "estimatedArrivalFrom": { "type": "string" },
+        "estimatedArrivalTo": { "type": "string" },
         "preorderPrice": { "type": "number" },
         "downpayment": { "type": "number" },
         "imageUrls": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "figureName", "datePreordered", "estimatedArrival", "preorderPrice", "downpayment"]
+      "required": ["userId", "characterName", "datePreordered", "estimatedArrivalFrom", "preorderPrice", "downpayment", "sourceAnime", "maker"]
     },
     "Equipment": {
       "title": "Equipment",

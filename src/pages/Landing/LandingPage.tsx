@@ -93,18 +93,17 @@ export function LandingPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="relative z-50 flex items-center gap-4 bg-bg-surface/40 backdrop-blur-md px-8 py-3 rounded-full border border-border-subtle shadow-lg shadow-emerald-500/5 group hover:border-accent-primary/30 transition-all cursor-default mb-8 sm:mb-12 mt-4"
+        className="relative z-50 flex items-center gap-4 px-8 py-3 cursor-default mb-8 sm:mb-12 mt-4 group"
       >
         <div className="relative">
-          <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full group-hover:bg-emerald-500/30 transition-all" />
           <img 
             src="https://res.cloudinary.com/dydhpzure/image/upload/v1777735809/awectavedp0w33t4q32k.png" 
             alt="KuraDex" 
-            className="w-10 h-10 sm:w-12 sm:h-12 object-contain relative group-hover:scale-110 transition-transform"
+            className="w-10 h-10 sm:w-12 sm:h-12 object-contain relative"
           />
         </div>
-        <span className="text-xl sm:text-2xl font-black tracking-[0.2em] uppercase text-text-main group-hover:text-accent-primary transition-colors">
-          Kura<span className="text-accent-primary">Dex</span>
+        <span className="text-xl sm:text-2xl font-black tracking-[0.2em] uppercase text-text-main">
+          Kura<span className="text-accent-soft">Dex</span>
         </span>
       </motion.div>
 
@@ -204,7 +203,7 @@ export function LandingPage() {
                 <item.icon className="w-4 h-4 sm:w-6 sm:h-6 text-accent-primary" />
               </div>
               <h3 className="font-black text-text-main text-[10px] sm:text-sm uppercase tracking-[0.2em]">{item.label}</h3>
-              <p className="text-[10px] sm:text-xs text-text-muted leading-relaxed px-4 hidden sm:block">{item.desc}</p>
+              <p className="text-[10px] sm:text-xs text-text-muted leading-relaxed px-4">{item.desc}</p>
             </motion.div>
           ))}
         </motion.div>

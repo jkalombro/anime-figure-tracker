@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingSpinner } from '../../shared/components/Loading';
@@ -15,7 +15,10 @@ import { DeletePreorderModal } from './components/DeletePreorderModal';
 import { MarkReceivedModal } from './components/MarkReceivedModal';
 
 interface PreorderForm {
-  figureName: string;
+  characterName: string;
+  sourceAnime: string;
+  maker: string;
+  figureLine: string;
   seller: string;
   datePreordered: string;
   estimatedArrivalFrom: string;
@@ -40,6 +43,10 @@ export function PreordersPage() {
   const [isReceivedModalOpen, setIsReceivedModalOpen] = useState(false);
   const [preorderToMark, setPreorderToMark] = useState<any>(null);
   const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [makersSuggestions, setMakersSuggestions] = useState<string[]>([]);
+  const [animeSuggestions, setAnimeSuggestions] = useState<string[]>([]);
+  const [showMakerSuggestions, setShowMakerSuggestions] = useState(false);
+  const [showAnimeSuggestions, setShowAnimeSuggestions] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -61,8 +68,30 @@ export function PreordersPage() {
   const formMethods = useForm<PreorderForm>({
     mode: 'onChange'
   });
-  const { reset, watch } = formMethods;
+  const { reset, watch, setValue } = formMethods;
   const watchedImages = watch('images');
+  const watchedMaker = watch('maker');
+  const watchedAnime = watch('sourceAnime');
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (isModalOpen) {
+        try {
+          const makersSnap = await getDocs(collection(db, 'makers'));
+          const animeSnap = await getDocs(collection(db, 'anime'));
+          
+          const uniqueMakers = Array.from(new Set(makersSnap.docs.map(doc => doc.data().name.trim()))).filter(Boolean);
+          const uniqueAnime = Array.from(new Set(animeSnap.docs.map(doc => doc.data().title.trim()))).filter(Boolean);
+          
+          setMakersSuggestions(uniqueMakers);
+          setAnimeSuggestions(uniqueAnime);
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+        }
+      }
+    };
+    fetchSuggestions();
+  }, [isModalOpen]);
 
   useEffect(() => {
     if (watchedImages && watchedImages.length > 0) {
@@ -85,6 +114,8 @@ export function PreordersPage() {
     if (!user) return;
     setLoading(true);
     try {
+      setShowAnimeSuggestions(false);
+      setShowMakerSuggestions(false);
       const finalImageUrls: string[] = [];
       
       for (const item of imageItems) {
@@ -98,7 +129,10 @@ export function PreordersPage() {
 
       const preorderData = {
         userId: user.uid,
-        figureName: data.figureName,
+        characterName: data.characterName,
+        sourceAnime: data.sourceAnime.trim(),
+        maker: data.maker.trim(),
+        figureLine: data.figureLine || '',
         seller: data.seller,
         datePreordered: data.datePreordered,
         estimatedArrivalFrom: data.estimatedArrivalFrom,
@@ -113,6 +147,17 @@ export function PreordersPage() {
         await updateDoc(doc(db, 'preorders', editingPreorder.id), preorderData);
       } else {
         await addDoc(collection(db, 'preorders'), preorderData);
+      }
+
+      // Sync Intellisense Collections
+      const makerExists = makersSuggestions.some(m => m.toLowerCase() === preorderData.maker.toLowerCase());
+      if (!makerExists && preorderData.maker) {
+        await addDoc(collection(db, 'makers'), { name: preorderData.maker, addedBy: user.uid });
+      }
+      
+      const animeExists = animeSuggestions.some(a => a.toLowerCase() === preorderData.sourceAnime.toLowerCase());
+      if (!animeExists && preorderData.sourceAnime) {
+        await addDoc(collection(db, 'anime'), { title: preorderData.sourceAnime, addedBy: user.uid });
       }
 
       setIsModalOpen(false);
@@ -150,7 +195,10 @@ export function PreordersPage() {
     setImageItems(preorder.imageUrls?.map((url: string) => ({ url })) || []);
     setIsModalOpen(true);
     reset({
-      figureName: preorder.figureName,
+      characterName: preorder.characterName || preorder.figureName,
+      sourceAnime: preorder.sourceAnime || '',
+      maker: preorder.maker || '',
+      figureLine: preorder.figureLine || '',
       seller: preorder.seller,
       datePreordered: preorder.datePreordered,
       estimatedArrivalFrom: preorder.estimatedArrivalFrom || preorder.estimatedArrival || '',
@@ -214,7 +262,23 @@ export function PreordersPage() {
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
         </div>
         <AddItemButton 
-          onClick={() => { setEditingPreorder(null); setImageItems([]); reset({ figureName: '', seller: '', datePreordered: '', estimatedArrivalFrom: '', estimatedArrivalTo: '', preorderPrice: null, downpayment: null }); setIsModalOpen(true); }}
+          onClick={() => { 
+            setEditingPreorder(null); 
+            setImageItems([]); 
+            reset({ 
+              characterName: '', 
+              sourceAnime: '',
+              maker: '',
+              figureLine: '',
+              seller: '', 
+              datePreordered: '', 
+              estimatedArrivalFrom: '', 
+              estimatedArrivalTo: '', 
+              preorderPrice: null, 
+              downpayment: null 
+            }); 
+            setIsModalOpen(true); 
+          }}
           label="Add Preorder"
         />
       </div>
@@ -274,6 +338,14 @@ export function PreordersPage() {
         onSubmit={onSubmit}
         imageItems={imageItems}
         setImageItems={setImageItems}
+        watchedAnime={watchedAnime}
+        watchedMaker={watchedMaker}
+        animeSuggestions={animeSuggestions}
+        makersSuggestions={makersSuggestions}
+        showAnimeSuggestions={showAnimeSuggestions}
+        showMakerSuggestions={showMakerSuggestions}
+        setShowAnimeSuggestions={setShowAnimeSuggestions}
+        setShowMakerSuggestions={setShowMakerSuggestions}
       />
 
       <DeletePreorderModal

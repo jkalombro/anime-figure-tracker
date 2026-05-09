@@ -32,7 +32,9 @@ export function MobileNavigation({
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-base font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
+          <h1 className="text-base font-black text-text-main tracking-tighter uppercase italic">
+            Kura<span className="text-accent-soft">Dex</span>
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button 

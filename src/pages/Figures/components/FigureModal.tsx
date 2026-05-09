@@ -64,6 +64,26 @@ export function FigureModal({
 }: FigureModalProps) {
   const { register, handleSubmit, setValue, watch, formState: { isValid } } = formMethods;
   const watchedIsGifted = watch('isGifted');
+  const [activeIndexAnime, setActiveIndexAnime] = React.useState(0);
+  const [activeIndexMaker, setActiveIndexMaker] = React.useState(0);
+
+  const filteredAnime = animeSuggestions
+    .filter(a => a.toLowerCase().includes((watchedAnime || '').toLowerCase()))
+    .filter(a => a.toLowerCase() !== (watchedAnime || '').toLowerCase())
+    .slice(0, 5);
+
+  const filteredMakers = makersSuggestions
+    .filter(m => m.toLowerCase().includes((watchedMaker || '').toLowerCase()))
+    .filter(m => m.toLowerCase() !== (watchedMaker || '').toLowerCase())
+    .slice(0, 5);
+
+  React.useEffect(() => {
+    setActiveIndexAnime(0);
+  }, [watchedAnime]);
+
+  React.useEffect(() => {
+    setActiveIndexMaker(0);
+  }, [watchedMaker]);
 
   return (
     <Modal
@@ -153,11 +173,16 @@ export function FigureModal({
                   setShowAnimeSuggestions(true);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Tab' && showAnimeSuggestions) {
-                    const filtered = animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase()) && a.toLowerCase() !== watchedAnime.toLowerCase()).slice(0, 5);
-                    if (filtered.length > 0) {
-                      e.preventDefault(); // Prevent default focus shift if we are selecting
-                      setValue('sourceAnime', filtered[0], { shouldValidate: true });
+                  if (showAnimeSuggestions && filteredAnime.length > 0) {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setActiveIndexAnime(prev => (prev + 1) % filteredAnime.length);
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setActiveIndexAnime(prev => (prev - 1 + filteredAnime.length) % filteredAnime.length);
+                    } else if (e.key === 'Tab' || e.key === 'Enter') {
+                      e.preventDefault();
+                      setValue('sourceAnime', filteredAnime[activeIndexAnime], { shouldValidate: true });
                       setShowAnimeSuggestions(false);
                     }
                   }
@@ -165,18 +190,22 @@ export function FigureModal({
                 className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
                 placeholder="e.g. Naruto Shippuden"
               />
-              {showAnimeSuggestions && watchedAnime && animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase()) && a.toLowerCase() !== watchedAnime.toLowerCase()).length > 0 && (
+              {showAnimeSuggestions && watchedAnime && filteredAnime.length > 0 && (
                 <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
-                  {animeSuggestions.filter(a => a.toLowerCase().includes(watchedAnime.toLowerCase())).slice(0, 5).map((a, i) => (
+                  {filteredAnime.map((a, i) => (
                     <button 
                       key={`${a}-${i}`} 
                       type="button" 
                       onMouseDown={(e) => e.preventDefault()}
+                      onMouseEnter={() => setActiveIndexAnime(i)}
                       onClick={() => {
                         setValue('sourceAnime', a, { shouldValidate: true });
                         setShowAnimeSuggestions(false);
                       }} 
-                      className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors"
+                      className={cn(
+                        "w-full text-left px-4 py-3 text-sm font-bold transition-colors",
+                        i === activeIndexAnime ? "bg-accent-primary text-white" : "hover:bg-accent-primary hover:text-white"
+                      )}
                     >
                       {a}
                     </button>
@@ -202,11 +231,16 @@ export function FigureModal({
                     setShowMakerSuggestions(true);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Tab' && showMakerSuggestions) {
-                      const filtered = makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase()) && m.toLowerCase() !== watchedMaker.toLowerCase()).slice(0, 5);
-                      if (filtered.length > 0) {
-                        e.preventDefault(); // Prevent default focus shift
-                        setValue('maker', filtered[0], { shouldValidate: true });
+                    if (showMakerSuggestions && filteredMakers.length > 0) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setActiveIndexMaker(prev => (prev + 1) % filteredMakers.length);
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setActiveIndexMaker(prev => (prev - 1 + filteredMakers.length) % filteredMakers.length);
+                      } else if (e.key === 'Tab' || e.key === 'Enter') {
+                        e.preventDefault();
+                        setValue('maker', filteredMakers[activeIndexMaker], { shouldValidate: true });
                         setShowMakerSuggestions(false);
                       }
                     }
@@ -214,18 +248,22 @@ export function FigureModal({
                   className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
                   placeholder="e.g. Banpresto"
                 />
-                {showMakerSuggestions && watchedMaker && makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase()) && m.toLowerCase() !== watchedMaker.toLowerCase()).length > 0 && (
+                {showMakerSuggestions && watchedMaker && filteredMakers.length > 0 && (
                   <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
-                    {makersSuggestions.filter(m => m.toLowerCase().includes(watchedMaker.toLowerCase())).slice(0, 5).map((m, i) => (
+                    {filteredMakers.map((m, i) => (
                       <button 
                         key={`${m}-${i}`} 
                         type="button" 
                         onMouseDown={(e) => e.preventDefault()}
+                        onMouseEnter={() => setActiveIndexMaker(i)}
                         onClick={() => {
                           setValue('maker', m, { shouldValidate: true });
                           setShowMakerSuggestions(false);
                         }} 
-                        className="w-full text-left px-4 py-3 hover:bg-accent-primary hover:text-white text-sm font-bold transition-colors"
+                        className={cn(
+                          "w-full text-left px-4 py-3 text-sm font-bold transition-colors",
+                          i === activeIndexMaker ? "bg-accent-primary text-white" : "hover:bg-accent-primary hover:text-white"
+                        )}
                       >
                         {m}
                       </button>

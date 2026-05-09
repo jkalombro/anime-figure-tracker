@@ -23,7 +23,9 @@ export function Sidebar({ user, logout, navItems }: SidebarProps) {
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-2xl font-black text-text-main tracking-tighter uppercase italic">KuraDex</h1>
+          <h1 className="text-2xl font-black text-text-main tracking-tighter uppercase italic">
+            Kura<span className="text-accent-soft">Dex</span>
+          </h1>
         </div>
       </div>
 
