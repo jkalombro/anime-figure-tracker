@@ -11,6 +11,7 @@ interface FigureForm {
   maker: string;
   figureLine: string;
   totalPrice: number | null;
+  condition: 'MSIB' | 'MIB' | 'BIB' | 'LOOSE' | 'PRE-ORDERED';
   sourceAnime: string;
   seasonArc?: string;
   images?: FileList;
@@ -61,7 +62,8 @@ export function FigureModal({
   imageItems,
   setImageItems
 }: FigureModalProps) {
-  const { register, handleSubmit, setValue, formState: { isValid } } = formMethods;
+  const { register, handleSubmit, setValue, watch, formState: { isValid } } = formMethods;
+  const watchedIsGifted = watch('isGifted');
 
   return (
     <Modal
@@ -92,21 +94,6 @@ export function FigureModal({
         <fieldset disabled={loading} className="space-y-6">
           {editingFigure && (
             <div className="space-y-4 bg-bg-deep/50 p-4 rounded-xl border border-border-subtle/50">
-              <div className="flex items-start sm:items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isGifted-top"
-                  {...register('isGifted')}
-                  className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
-                />
-                <label htmlFor="isGifted-top" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
-                  Mark as Gift 
-                  <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                    Check this if this figure was gifted to you
-                  </span>
-                </label>
-              </div>
-
               <div className="flex items-start sm:items-center gap-3">
                 <input
                   type="checkbox"
@@ -260,16 +247,82 @@ export function FigureModal({
             </div>
           </div>
 
-          {/* Price */}
-          <div className="space-y-2">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Price</label>
-            <input
-              type="number" step="0.01"
-              {...register('totalPrice', { required: true })}
-              autoComplete="off"
-              className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
+          {/* Price and Gift Switch Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+            {/* Price */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Price</label>
+              <div className="relative group">
+                <input
+                  type="number" step="0.01"
+                  {...register('totalPrice', { required: true })}
+                  autoComplete="off"
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Purchased/Gifted Switch */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Purchased/Gifted</label>
+              <div className="flex items-center h-11">
+                <div className="flex items-center bg-bg-deep p-1 rounded-xl border border-border-subtle w-full relative">
+                  {/* Slider Background */}
+                  <motion.div 
+                    initial={false}
+                    animate={{ x: watchedIsGifted ? '100%' : '0%' }}
+                    transition={{ type: "spring", stiffness: 400, damping: 40 }}
+                    className="absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-accent-primary rounded-lg z-0"
+                  />
+                  
+                  <button
+                    type="button"
+                    onClick={() => setValue('isGifted', false, { shouldValidate: true })}
+                    className={cn(
+                      "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors z-10",
+                      !watchedIsGifted ? "text-white" : "text-text-muted hover:text-text-main"
+                    )}
+                  >
+                    Purchased
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValue('isGifted', true, { shouldValidate: true })}
+                    className={cn(
+                      "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors z-10",
+                      watchedIsGifted ? "text-white" : "text-text-muted hover:text-text-main"
+                    )}
+                  >
+                    Gift
+                  </button>
+                  <input type="checkbox" className="hidden" {...register('isGifted')} />
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Condition Row */}
+          {!watchedIsGifted && (
+            <div className="space-y-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Purchase Condition</label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {['MSIB', 'MIB', 'BIB', 'LOOSE', 'PRE-ORDERED'].map((opt) => (
+                  <label key={opt} className="relative group cursor-pointer">
+                    <input
+                      type="radio"
+                      value={opt}
+                      {...register('condition', { required: !watchedIsGifted })}
+                      className="sr-only peer"
+                    />
+                    <div className="flex items-center justify-center py-3 px-1 text-[9px] sm:text-[10px] font-black uppercase tracking-tight sm:tracking-widest border border-border-subtle rounded-xl bg-bg-surface text-text-muted peer-checked:bg-accent-primary/10 peer-checked:border-accent-primary peer-checked:text-accent-primary hover:border-accent-primary transition-all duration-200 text-center min-h-[44px]">
+                      {opt}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Images */}
           <div className="space-y-2">
@@ -315,56 +368,7 @@ export function FigureModal({
             />
           </div>
 
-          {!editingFigure && (
-            <div className="space-y-4">
-              <div className="flex items-start sm:items-center gap-3 px-1">
-                <input
-                  type="checkbox"
-                  id="isGifted"
-                  {...register('isGifted')}
-                  className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0"
-                />
-                <label htmlFor="isGifted" className="text-sm font-bold text-text-main cursor-pointer select-none leading-tight">
-                  Mark as Gift 
-                  <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                    Check this if this figure was gifted to you by someone
-                  </span>
-                </label>
-              </div>
-
-              <div className="flex items-start sm:items-center gap-3 px-1">
-                <input
-                  type="checkbox"
-                  id="isSold"
-                  {...register('isSold')}
-                  disabled={watchedIsLost}
-                  className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
-                />
-                <label htmlFor="isSold" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsLost && "opacity-30 cursor-not-allowed")}>
-                  Mark as Sold
-                  <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                    Check this if you have already sold this figure
-                  </span>
-                </label>
-              </div>
-
-              <div className="flex items-start sm:items-center gap-3 px-1">
-                <input
-                  type="checkbox"
-                  id="isLost"
-                  {...register('isLost')}
-                  disabled={watchedIsSold}
-                  className="w-5 h-5 mt-0.5 sm:mt-0 rounded border-border-subtle text-accent-primary focus:ring-accent-primary bg-bg-card shrink-0 disabled:opacity-30"
-                />
-                <label htmlFor="isLost" className={cn("text-sm font-bold text-text-main cursor-pointer select-none leading-tight", watchedIsSold && "opacity-30 cursor-not-allowed")}>
-                  Mark as Lost
-                  <span className="block sm:inline sm:ml-2 text-[10px] text-text-muted font-medium normal-case tracking-normal">
-                    Check this if the figure is missing or damaged
-                  </span>
-                </label>
-              </div>
-            </div>
-          )}
+          {/* removed checkboxes from bottom of new figure mode */}
         </fieldset>
       </form>
     </Modal>

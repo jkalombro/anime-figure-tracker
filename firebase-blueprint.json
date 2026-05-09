@@ -47,6 +47,7 @@
         "sourceAnime": { "type": "string" },
         "seasonArc": { "type": "string" },
         "isGifted": { "type": "boolean" },
+        "condition": { "type": "string", "enum": ["MSIB", "MIB", "BIB", "LOOSE", "PRE-ORDERED"] },
         "imageUrls": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },

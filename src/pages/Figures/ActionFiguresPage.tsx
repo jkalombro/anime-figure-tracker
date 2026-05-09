@@ -19,6 +19,7 @@ interface FigureForm {
   maker: string;
   figureLine: string;
   totalPrice: number | null;
+  condition: 'MSIB' | 'MIB' | 'BIB' | 'LOOSE' | 'PRE-ORDERED';
   sourceAnime: string;
   seasonArc?: string;
   images?: FileList;
@@ -198,6 +199,7 @@ export function ActionFiguresPage() {
         maker: data.maker.trim(),
         figureLine: data.figureLine || '',
         totalPrice: data.totalPrice !== null ? Number(data.totalPrice) : 0,
+        condition: data.condition,
         sourceAnime: data.sourceAnime.trim(),
         isGifted: data.isGifted,
         isSold: data.isSold || false,
@@ -263,6 +265,7 @@ export function ActionFiguresPage() {
       maker: figure.maker,
       figureLine: figure.figureLine || '',
       totalPrice: figure.totalPrice ?? null,
+      condition: figure.condition || 'MSIB',
       sourceAnime: figure.sourceAnime,
       isGifted: figure.isGifted || false,
       isSold: figure.isSold || false,
@@ -288,7 +291,7 @@ export function ActionFiguresPage() {
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Catalog Archive</p>
         </div>
         <AddItemButton 
-          onClick={() => { setEditingFigure(null); setImageItems([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, sourceAnime: '', isGifted: false, isSold: false, isLost: false, description: '' }); setIsModalOpen(true); }}
+          onClick={() => { setEditingFigure(null); setImageItems([]); reset({ characterName: '', maker: '', figureLine: '', totalPrice: null, condition: 'MSIB', sourceAnime: '', isGifted: false, isSold: false, isLost: false, description: '' }); setIsModalOpen(true); }}
           label="Add New Figure"
         />
       </div>
