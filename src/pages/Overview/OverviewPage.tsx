@@ -59,7 +59,8 @@ export function OverviewPage() {
     });
 
     const unsubPreorders = onSnapshot(preordersQuery, (snapshot) => {
-      setStats(prev => ({ ...prev, preorders: snapshot.size }));
+      const activePreordersCount = snapshot.docs.filter(doc => !doc.data().receivedAt).length;
+      setStats(prev => ({ ...prev, preorders: activePreordersCount }));
       preordersLoaded = true;
       checkLoading();
     });
@@ -105,7 +106,7 @@ export function OverviewPage() {
           WELCOME, <span className="text-accent-primary">COLLECTOR.</span>
         </h2>
         <p className="text-text-muted text-[10px] sm:text-xs mt-1 font-medium tracking-wide uppercase">
-          Your Gallery thrives. <span className="text-accent-soft">{stats.preorders} preorder{stats.preorders !== 1 ? 's' : ''}</span> are on the horizon.
+          Your Gallery thrives. <span className="text-accent-soft">{stats.preorders} preorder{stats.preorders > 1 ? 's' : ''}</span> {stats.preorders > 1 ? 'are' : 'is'} on the horizon.
         </p>
       </motion.header>
 

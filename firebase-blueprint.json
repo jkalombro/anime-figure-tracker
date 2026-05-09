@@ -70,6 +70,7 @@
         "preorderPrice": { "type": "number" },
         "downpayment": { "type": "number" },
         "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "receivedAt": { "type": "string", "format": "date" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "characterName", "datePreordered", "estimatedArrivalFrom", "preorderPrice", "downpayment", "sourceAnime", "maker"]

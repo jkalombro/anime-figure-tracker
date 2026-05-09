@@ -38,32 +38,51 @@ service cloud.firestore {
     // Action Figures
     match /actionFigures/{figureId} {
       function isValidFigure(data) {
-        return data.userId is string
-          && data.characterName is string
-          && data.maker is string
-          && data.totalPrice is number
-          && data.sourceAnime is string;
+        return isValidId(data.userId)
+          && (data.get('characterName', '') is string && data.get('characterName', '').size() <= 200)
+          && data.maker is string && data.maker.size() <= 200
+          && data.totalPrice is number && data.totalPrice >= 0
+          && data.sourceAnime is string && data.sourceAnime.size() <= 200
+          && data.condition is string && data.condition.size() <= 50;
       }
 
-      allow read: if true;
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidFigure(incoming());
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidFigure(incoming());
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && isValidId(figureId)
+        && incoming().userId == request.auth.uid 
+        && isValidFigure(incoming());
+      allow update: if isSignedIn() 
+        && isValidId(figureId)
+        && existing().userId == request.auth.uid 
+        && incoming().userId == request.auth.uid 
+        && isValidFigure(incoming())
+        && (incoming().diff(existing()).affectedKeys().hasOnly(['characterName', 'maker', 'totalPrice', 'sourceAnime', 'condition', 'figureLine', 'imageUrls', 'isGifted', 'isSold', 'isLost', 'description', 'updatedAt', 'seasonArc']));
+      allow delete: if isSignedIn() && isValidId(figureId) && existing().userId == request.auth.uid;
     }
 
     // Preorders
     match /preorders/{preorderId} {
       function isValidPreorder(data) {
-        return data.userId is string
-          && data.figureName is string
-          && data.seller is string
-          && data.preorderPrice is number
-          && data.downpayment is number;
+        return isValidId(data.userId)
+          && (data.get('characterName', '') is string && data.get('characterName', '').size() <= 200)
+          && data.get('sourceAnime', '') is string && data.get('sourceAnime', '').size() <= 200
+          && data.get('maker', '') is string && data.get('maker', '').size() <= 200
+          && data.seller is string && data.seller.size() <= 200
+          && data.preorderPrice is number && data.preorderPrice >= 0
+          && data.downpayment is number && data.downpayment >= 0;
       }
-      allow read: if true;
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidPreorder(incoming());
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidPreorder(incoming());
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && isValidId(preorderId)
+        && incoming().userId == request.auth.uid 
+        && isValidPreorder(incoming());
+      allow update: if isSignedIn() 
+        && isValidId(preorderId)
+        && existing().userId == request.auth.uid 
+        && incoming().userId == request.auth.uid 
+        && isValidPreorder(incoming())
+        && (incoming().diff(existing()).affectedKeys().hasOnly(['characterName', 'sourceAnime', 'maker', 'figureLine', 'seller', 'preorderPrice', 'downpayment', 'datePreordered', 'estimatedArrivalFrom', 'estimatedArrivalTo', 'estimatedArrival', 'imageUrls', 'receivedAt', 'updatedAt']));
+      allow delete: if isSignedIn() && isValidId(preorderId) && existing().userId == request.auth.uid;
     }
 
     // Equipments

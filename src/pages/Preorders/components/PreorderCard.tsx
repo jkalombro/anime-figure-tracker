@@ -47,11 +47,6 @@ export function PreorderCard({
               <h3 className="font-bold text-text-main text-sm sm:text-base tracking-tight">
                 {preorder.characterName || preorder.figureName}
               </h3>
-              {preorder.receivedAt && (
-                <span className="text-[8px] sm:text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-wider h-fit ml-1">
-                  RECEIVED
-                </span>
-              )}
               {preorder.maker && (
                 <>
                   <span className="text-text-muted/30 font-normal shrink-0">•</span>

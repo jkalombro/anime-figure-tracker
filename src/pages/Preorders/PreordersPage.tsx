@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp, getDocs } from 'firebase/firestore';
-import { db } from '../../shared/services/firebase';
+import { db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
@@ -43,10 +43,12 @@ export function PreordersPage() {
   const [isReceivedModalOpen, setIsReceivedModalOpen] = useState(false);
   const [preorderToMark, setPreorderToMark] = useState<any>(null);
   const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [receivedStatus, setReceivedStatus] = useState<string | undefined>(undefined);
   const [makersSuggestions, setMakersSuggestions] = useState<string[]>([]);
   const [animeSuggestions, setAnimeSuggestions] = useState<string[]>([]);
   const [showMakerSuggestions, setShowMakerSuggestions] = useState(false);
   const [showAnimeSuggestions, setShowAnimeSuggestions] = useState(false);
+
 
   useEffect(() => {
     if (!user) return;
@@ -57,11 +59,24 @@ export function PreordersPage() {
         .sort((a: any, b: any) => {
           const aReceived = !!a.receivedAt;
           const bReceived = !!b.receivedAt;
+          
+          // First criteria: Received status (unreceived first)
           if (aReceived !== bReceived) return aReceived ? 1 : -1;
-          return (a.estimatedArrivalFrom || '').localeCompare(b.estimatedArrivalFrom || '');
+          
+          // Second criteria: Estimated arrival (nearest first)
+          // Handle missing dates by pushing them to the end of their category
+          const aDate = a.estimatedArrivalFrom || (aReceived ? '9999-99' : '9999-99');
+          const bDate = b.estimatedArrivalFrom || (bReceived ? '9999-99' : '9999-99');
+          
+          if (!a.estimatedArrivalFrom && b.estimatedArrivalFrom) return 1;
+          if (a.estimatedArrivalFrom && !b.estimatedArrivalFrom) return -1;
+          
+          return aDate.localeCompare(bDate);
         });
       setPreorders(sorted);
       setInitialLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'preorders');
     });
   }, [user]);
 
@@ -77,8 +92,10 @@ export function PreordersPage() {
     const fetchSuggestions = async () => {
       if (isModalOpen) {
         try {
-          const makersSnap = await getDocs(collection(db, 'makers'));
-          const animeSnap = await getDocs(collection(db, 'anime'));
+          const makersSnap = await getDocs(collection(db, 'makers'))
+            .catch(err => { handleFirestoreError(err, OperationType.GET, 'makers'); throw err; });
+          const animeSnap = await getDocs(collection(db, 'anime'))
+            .catch(err => { handleFirestoreError(err, OperationType.GET, 'anime'); throw err; });
           
           const uniqueMakers = Array.from(new Set(makersSnap.docs.map(doc => doc.data().name.trim()))).filter(Boolean);
           const uniqueAnime = Array.from(new Set(animeSnap.docs.map(doc => doc.data().title.trim()))).filter(Boolean);
@@ -144,20 +161,24 @@ export function PreordersPage() {
       };
 
       if (editingPreorder) {
-        await updateDoc(doc(db, 'preorders', editingPreorder.id), preorderData);
+        await updateDoc(doc(db, 'preorders', editingPreorder.id), preorderData)
+          .catch(err => { handleFirestoreError(err, OperationType.UPDATE, `preorders/${editingPreorder.id}`); throw err; });
       } else {
-        await addDoc(collection(db, 'preorders'), preorderData);
+        await addDoc(collection(db, 'preorders'), preorderData)
+          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'preorders'); throw err; });
       }
 
       // Sync Intellisense Collections
       const makerExists = makersSuggestions.some(m => m.toLowerCase() === preorderData.maker.toLowerCase());
       if (!makerExists && preorderData.maker) {
-        await addDoc(collection(db, 'makers'), { name: preorderData.maker, addedBy: user.uid });
+        await addDoc(collection(db, 'makers'), { name: preorderData.maker, addedBy: user.uid })
+          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'makers'); throw err; });
       }
       
       const animeExists = animeSuggestions.some(a => a.toLowerCase() === preorderData.sourceAnime.toLowerCase());
       if (!animeExists && preorderData.sourceAnime) {
-        await addDoc(collection(db, 'anime'), { title: preorderData.sourceAnime, addedBy: user.uid });
+        await addDoc(collection(db, 'anime'), { title: preorderData.sourceAnime, addedBy: user.uid })
+          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'anime'); throw err; });
       }
 
       setIsModalOpen(false);
@@ -180,7 +201,8 @@ export function PreordersPage() {
     if (!preorderToDelete) return;
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'preorders', preorderToDelete.id));
+      await deleteDoc(doc(db, 'preorders', preorderToDelete.id))
+        .catch(err => { handleFirestoreError(err, OperationType.DELETE, `preorders/${preorderToDelete.id}`); throw err; });
       setIsDeleteModalOpen(false);
       setPreorderToDelete(null);
     } catch (error) {
@@ -209,17 +231,67 @@ export function PreordersPage() {
   };
 
   const confirmReceived = async () => {
-    if (!preorderToMark) return;
+    if (!preorderToMark || !user) return;
     setLoading(true);
+    setReceivedStatus('Marking preorder as received...');
     try {
+      // 1. Update Preorder
       await updateDoc(doc(db, 'preorders', preorderToMark.id), {
         receivedAt: receivedDate,
         updatedAt: serverTimestamp()
-      });
-      setIsReceivedModalOpen(false);
-      setPreorderToMark(null);
+      }).catch(err => { handleFirestoreError(err, OperationType.UPDATE, `preorders/${preorderToMark.id}`); throw err; });
+      
+      setReceivedStatus('Adding to Action Figure catalog...');
+      
+      // 2. Create Figure Entry Automatically
+      const figureData: any = {
+        userId: user.uid,
+        characterName: preorderToMark.characterName || preorderToMark.figureName,
+        maker: (preorderToMark.maker || '').trim(),
+        figureLine: preorderToMark.figureLine || '',
+        totalPrice: preorderToMark.preorderPrice !== null ? Number(preorderToMark.preorderPrice) : 0,
+        condition: 'PRE-ORDERED',
+        sourceAnime: (preorderToMark.sourceAnime || '').trim(),
+        isGifted: false,
+        isSold: false,
+        isLost: false,
+        description: `Source Preorder: ${preorderToMark.seller} (${preorderToMark.datePreordered})`,
+        imageUrls: preorderToMark.imageUrls || [],
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, 'actionFigures'), figureData)
+        .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'actionFigures'); throw err; });
+
+      // Sync Intellisense Collections
+      if (figureData.maker) {
+        const makerExists = makersSuggestions.some(m => m.toLowerCase() === figureData.maker.toLowerCase());
+        if (!makerExists) {
+          await addDoc(collection(db, 'makers'), { name: figureData.maker, addedBy: user.uid })
+            .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'makers'); throw err; });
+        }
+      }
+      
+      if (figureData.sourceAnime) {
+        const animeExists = animeSuggestions.some(a => a.toLowerCase() === figureData.sourceAnime.toLowerCase());
+        if (!animeExists) {
+          await addDoc(collection(db, 'anime'), { title: figureData.sourceAnime, addedBy: user.uid })
+            .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'anime'); throw err; });
+        }
+      }
+
+      setReceivedStatus('Successfully added to catalog!');
+      
+      // Delay closing to show success message
+      setTimeout(() => {
+        setIsReceivedModalOpen(false);
+        setPreorderToMark(null);
+        setReceivedStatus(undefined);
+      }, 1500);
+
     } catch (error) {
       console.error("Error marking as received:", error);
+      setReceivedStatus('Error encountered during check-in.');
     } finally {
       setLoading(false);
     }
@@ -364,6 +436,7 @@ export function PreordersPage() {
         receivedDate={receivedDate}
         setReceivedDate={setReceivedDate}
         onConfirm={confirmReceived}
+        status={receivedStatus}
       />
     </div>
   );

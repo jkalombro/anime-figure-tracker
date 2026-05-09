@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../shared/services/firebase';
+import { db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
@@ -113,6 +113,8 @@ export function ActionFiguresPage() {
     return onSnapshot(q, (snapshot) => {
       setFigures(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setInitialLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'actionFigures');
     });
   }, [user]);
 
@@ -120,8 +122,10 @@ export function ActionFiguresPage() {
     const fetchSuggestions = async () => {
       if (isModalOpen) {
         try {
-          const makersSnap = await getDocs(collection(db, 'makers'));
-          const animeSnap = await getDocs(collection(db, 'anime'));
+          const makersSnap = await getDocs(collection(db, 'makers'))
+            .catch(err => { handleFirestoreError(err, OperationType.GET, 'makers'); throw err; });
+          const animeSnap = await getDocs(collection(db, 'anime'))
+            .catch(err => { handleFirestoreError(err, OperationType.GET, 'anime'); throw err; });
           
           // Deduplicate suggestions (case-insensitive)
           const uniqueMakers = Array.from(new Set(makersSnap.docs.map(doc => doc.data().name.trim()))).filter(Boolean);
@@ -210,20 +214,24 @@ export function ActionFiguresPage() {
       };
 
       if (editingFigure) {
-        await updateDoc(doc(db, 'actionFigures', editingFigure.id), figureData);
+        await updateDoc(doc(db, 'actionFigures', editingFigure.id), figureData)
+          .catch(err => { handleFirestoreError(err, OperationType.UPDATE, `actionFigures/${editingFigure.id}`); throw err; });
       } else {
-        await addDoc(collection(db, 'actionFigures'), figureData);
+        await addDoc(collection(db, 'actionFigures'), figureData)
+          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'actionFigures'); throw err; });
       }
 
       // Sync Intellisense Collections (Case Insensitive)
       const makerExists = makersSuggestions.some(m => m.toLowerCase() === figureData.maker.toLowerCase());
       if (!makerExists && figureData.maker) {
-        await addDoc(collection(db, 'makers'), { name: figureData.maker, addedBy: user.uid });
+        await addDoc(collection(db, 'makers'), { name: figureData.maker, addedBy: user.uid })
+          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'makers'); throw err; });
       }
       
       const animeExists = animeSuggestions.some(a => a.toLowerCase() === figureData.sourceAnime.toLowerCase());
       if (!animeExists && figureData.sourceAnime) {
-        await addDoc(collection(db, 'anime'), { title: figureData.sourceAnime, addedBy: user.uid });
+        await addDoc(collection(db, 'anime'), { title: figureData.sourceAnime, addedBy: user.uid })
+          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'anime'); throw err; });
       }
 
       setIsModalOpen(false);
@@ -246,7 +254,8 @@ export function ActionFiguresPage() {
     if (!figureToDelete) return;
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'actionFigures', figureToDelete.id));
+      await deleteDoc(doc(db, 'actionFigures', figureToDelete.id))
+        .catch(err => { handleFirestoreError(err, OperationType.DELETE, `actionFigures/${figureToDelete.id}`); throw err; });
       setIsDeleteModalOpen(false);
       setFigureToDelete(null);
     } catch (error) {
