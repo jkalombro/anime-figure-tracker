@@ -24,7 +24,10 @@ export function EquipmentCard({ equip, onEdit, onDelete }: EquipmentCardProps) {
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="text-xs sm:text-sm font-semibold text-text-main truncate">{equip.description}</h3>
-        <p className="text-accent-soft font-bold text-[10px] sm:text-xs mt-1">{formatCurrency(equip.totalPrice)} investment</p>
+        <p className="text-[10px] sm:text-xs mt-1 font-bold uppercase tracking-widest">
+          <span className="text-text-muted/40 font-black">Price: </span>
+          <span className="text-accent-soft font-black tabular-nums">{formatCurrency(equip.totalPrice)}</span>
+        </p>
       </div>
       <div className="flex gap-1">
         <button

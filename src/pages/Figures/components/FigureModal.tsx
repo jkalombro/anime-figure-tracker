@@ -219,7 +219,7 @@ export function FigureModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Maker */}
             <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Maker</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Product Line/Series</label>
               <div className="relative">
                 <input
                   {...register('maker', { required: true })}
@@ -246,7 +246,7 @@ export function FigureModal({
                     }
                   }}
                   className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                  placeholder="e.g. Banpresto"
+                  placeholder="e.g. Ichiban Kuji"
                 />
                 {showMakerSuggestions && watchedMaker && filteredMakers.length > 0 && (
                   <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
@@ -275,12 +275,12 @@ export function FigureModal({
 
             {/* Line */}
             <div className="space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Series/Line/Scale (optional)</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Set/Scale (optional)</label>
               <input
                 {...register('figureLine')}
                 autoComplete="off"
                 className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                placeholder="e.g. 20th anniversary series"
+                placeholder="e.g. Ultra Impact"
               />
             </div>
           </div>
