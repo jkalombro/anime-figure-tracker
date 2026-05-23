@@ -10,6 +10,7 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn(); } // Relaxed verified check for preview environment
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && request.auth.token.email_verified == true && (request.auth.token.email == "jkninja238@gmail.com" || request.auth.token.email == "admin@kuradex.com"); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
@@ -51,7 +52,7 @@ service cloud.firestore {
           && data.condition is string && data.condition.size() <= 50;
       }
 
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       allow create: if isSignedIn() 
         && isValidId(figureId)
         && incoming().userId == request.auth.uid 
@@ -76,7 +77,7 @@ service cloud.firestore {
           && data.preorderPrice is number && data.preorderPrice >= 0
           && data.downpayment is number && data.downpayment >= 0;
       }
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       allow create: if isSignedIn() 
         && isValidId(preorderId)
         && incoming().userId == request.auth.uid 

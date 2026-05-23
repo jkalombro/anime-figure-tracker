@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { User, Settings, LogOut, LayoutDashboard, Library, Clock, Shield, Users } from 'lucide-react';
 import { cn } from '../../../shared/utils/utils';
 import { motion } from 'motion/react';
+import { useAuth } from '../../../shared/context/AuthContext';
 
 interface SidebarProps {
   user: any;
@@ -11,6 +12,7 @@ interface SidebarProps {
 
 export function Sidebar({ user, logout, navItems }: SidebarProps) {
   const location = useLocation();
+  const { isAdmin } = useAuth();
 
   return (
     <aside className="hidden md:flex w-72 flex-col p-10 border-r border-border-subtle bg-bg-surface fixed h-full overflow-y-auto">
@@ -67,6 +69,19 @@ export function Sidebar({ user, logout, navItems }: SidebarProps) {
           <Users className="w-5 h-5" />
           <span>Community</span>
         </Link>
+
+        {isAdmin && (
+          <Link
+            to="/dashboard/administration"
+             className={cn(
+               "flex items-center gap-4 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.15em] transition-all group mt-2",
+               location.pathname.startsWith('/dashboard/administration') ? "bg-accent-primary/5 text-accent-primary" : "text-text-muted hover:bg-bg-card/80 hover:text-text-main"
+             )}
+          >
+            <Shield className="w-5 h-5 text-accent-primary" />
+            <span>Administration</span>
+          </Link>
+        )}
       </nav>
 
       <div className="mt-auto pt-8">

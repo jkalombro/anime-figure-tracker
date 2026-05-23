@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firest
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfile: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
@@ -68,8 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser({ ...auth.currentUser });
   };
 
+  const adminEmail = process.env.ADMIN_EMAIL || '';
+  const isAdmin = !!(user && adminEmail && user.email?.toLowerCase() === adminEmail.toLowerCase());
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUserProfile }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, login, logout, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

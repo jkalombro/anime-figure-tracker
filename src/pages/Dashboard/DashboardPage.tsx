@@ -7,6 +7,7 @@ import { PreordersPage } from '../Preorders/PreordersPage';
 import { EquipmentsPage } from '../Equipments/EquipmentsPage';
 import { ShowcasePage } from '../Showcase/ShowcasePage';
 import { SettingsPage } from '../Settings/SettingsPage';
+import { AdministrationPage } from '../Administration/AdministrationPage';
 import { LayoutDashboard, Library, Clock, Shield, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sidebar } from './components/Sidebar';
@@ -64,6 +65,7 @@ export function DashboardPage() {
                 <Route path="equipments" element={<EquipmentsPage />} />
                 <Route path="showcase" element={<ShowcasePage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="administration" element={<AdministrationPage />} />
               </Routes>
             </motion.div>
           </AnimatePresence>

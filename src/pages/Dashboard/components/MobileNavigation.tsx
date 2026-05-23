@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, LogOut, Settings, X, Users } from 'lucide-react';
+import { User, LogOut, Settings, X, Users, Shield } from 'lucide-react';
 import { cn } from '../../../shared/utils/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../../../shared/context/AuthContext';
 
 interface MobileNavigationProps {
   user: any;
@@ -19,6 +20,7 @@ export function MobileNavigation({
   setIsUserMenuOpen,
 }: MobileNavigationProps) {
   const location = useLocation();
+  const { isAdmin } = useAuth();
 
   return (
     <>
@@ -108,6 +110,21 @@ export function MobileNavigation({
                     <p className="text-[10px] text-text-muted mt-0.5">Explore Galleries</p>
                   </div>
                 </Link>
+
+                {isAdmin && (
+                  <Link
+                    to="/dashboard/administration"
+                    className="flex items-center gap-4 p-5 rounded-2xl bg-bg-card hover:bg-accent-primary/5 transition-all group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-bg-surface flex items-center justify-center text-text-muted group-hover:text-accent-primary transition-colors">
+                      <Shield className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-text-main uppercase tracking-widest">Administration</p>
+                      <p className="text-[10px] text-text-muted mt-0.5">System Overview</p>
+                    </div>
+                  </Link>
+                )}
 
                 <Link
                   to="/dashboard/settings"
