@@ -4,7 +4,7 @@ import { db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingScreen } from '../../shared/components/Loading';
 import { Link } from 'react-router-dom';
-import { User, Shield, Sparkles, ExternalLink, ArrowRight, Users, Home, LogIn } from 'lucide-react';
+import { User, Heart, Sparkles, ExternalLink, ArrowRight, Users, Home, LogIn } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function CommunityPage() {
@@ -34,7 +34,21 @@ export function CommunityPage() {
             return hasShowcases || hasFeatured;
           });
 
-        setUsers(usersList);
+        // 3. Fetch likes for each filtered user
+        const usersListWithLikes = await Promise.all(
+          usersList.map(async (u) => {
+            try {
+              const likesColl = collection(db, 'users', u.id, 'likes');
+              const likesSnap = await getDocs(likesColl);
+              return { ...u, likesCount: likesSnap.size };
+            } catch (err) {
+              console.error("Error fetching likes for user", u.id, err);
+              return { ...u, likesCount: 0 };
+            }
+          })
+        );
+
+        setUsers(usersListWithLikes);
       } catch (error) {
         console.error("Error fetching users:", error);
       } finally {
@@ -116,9 +130,11 @@ export function CommunityPage() {
                         <h3 className="text-lg font-black text-text-main tracking-tight line-clamp-1">
                           {user.displayName || "Unknown Collector"}
                         </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Shield className="w-3 h-3 text-accent-primary" />
-                          <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Verified Curator</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Heart className="w-3.5 h-3.5 fill-red-500 stroke-red-500" />
+                          <span className="font-mono text-[10px] font-black text-text-muted uppercase tracking-wider">
+                            {user.likesCount || 0} {user.likesCount === 1 ? 'Like' : 'Likes'}
+                          </span>
                         </div>
                       </div>
                     </div>

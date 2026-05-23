@@ -23,6 +23,20 @@ export function FeaturedItemsModal({
   setFeaturedFigureIds,
   onSave,
 }: FeaturedItemsModalProps) {
+  const sortedFigures = React.useMemo(() => {
+    return [...figures].sort((a, b) => {
+      const scoreA = featuredFigureIds.indexOf(a.id);
+      const scoreB = featuredFigureIds.indexOf(b.id);
+      
+      if (scoreA !== -1 && scoreB !== -1) {
+        return scoreA - scoreB;
+      }
+      if (scoreA !== -1) return -1;
+      if (scoreB !== -1) return 1;
+      return 0;
+    });
+  }, [figures, featuredFigureIds]);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -67,7 +81,7 @@ export function FeaturedItemsModal({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-          {figures.map((figure) => {
+          {sortedFigures.map((figure) => {
             const isSelected = featuredFigureIds.includes(figure.id);
             return (
               <button
@@ -98,8 +112,8 @@ export function FeaturedItemsModal({
                 </div>
 
                 {isSelected && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-accent-primary rounded-lg flex items-center justify-center text-white shadow-lg">
-                     <Check className="w-4 h-4" />
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-accent-primary rounded-lg flex items-center justify-center text-white shadow-lg font-black text-xs">
+                     {featuredFigureIds.indexOf(figure.id) + 1}
                   </div>
                 )}
               </button>

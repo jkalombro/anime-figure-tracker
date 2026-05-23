@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, orderBy, documentId } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, documentId, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../shared/services/firebase';
 import { LoadingScreen } from '../../shared/components/Loading';
 import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
-import { Box, Package, User as UserIcon, Camera, Home, Users, LogIn, LayoutDashboard, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Box, Package, User as UserIcon, Camera, Home, Users, LogIn, LayoutDashboard, ChevronLeft, ChevronRight, X, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, cn } from '../../shared/utils/utils';
 import { useAuth } from '../../shared/context/AuthContext';
@@ -19,6 +19,10 @@ export function ProfilePage() {
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
 
+  const [likesCount, setLikesCount] = useState<number>(0);
+  const [isLiked, setIsLiked] = useState<boolean>(false);
+  const [likeLoading, setLikeLoading] = useState<boolean>(false);
+
   useEffect(() => {
     async function fetchProfile() {
       if (!userId) return;
@@ -28,6 +32,20 @@ export function ProfilePage() {
           const profileData = userDoc.data();
           setProfile(profileData);
           
+          // Fetch likes count and user liked status
+          try {
+            const likesColl = collection(db, 'users', userId, 'likes');
+            const likesSnap = await getDocs(likesColl);
+            setLikesCount(likesSnap.size);
+            
+            if (currentUser) {
+              const userLikeExists = likesSnap.docs.some(doc => doc.id === currentUser.uid);
+              setIsLiked(userLikeExists);
+            }
+          } catch (err) {
+            console.error("Error fetching likes:", err);
+          }
+
           // Only fetch specific featured ones if defined
           if (profileData.featuredFigureIds && profileData.featuredFigureIds.length > 0) {
             const figuresQuery = query(
@@ -35,7 +53,16 @@ export function ProfilePage() {
               where(documentId(), 'in', profileData.featuredFigureIds)
             );
             const figuresSnap = await getDocs(figuresQuery);
-            setFigures(figuresSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const fetchedFigures = figuresSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            // Sort to match the exact sequence in featuredFigureIds
+            fetchedFigures.sort((a, b) => {
+              const idxA = profileData.featuredFigureIds.indexOf(a.id);
+              const idxB = profileData.featuredFigureIds.indexOf(b.id);
+              return idxA - idxB;
+            });
+            
+            setFigures(fetchedFigures);
           } else {
             const figuresQuery = query(
               collection(db, 'actionFigures'), 
@@ -61,7 +88,36 @@ export function ProfilePage() {
       }
     }
     fetchProfile();
-  }, [userId]);
+  }, [userId, currentUser]);
+
+  const toggleLike = async () => {
+    if (!currentUser) {
+      alert("Please sign in to like profiles!");
+      return;
+    }
+    if (!userId || likeLoading) return;
+    
+    setLikeLoading(true);
+    const likeDocRef = doc(db, 'users', userId, 'likes', currentUser.uid);
+    try {
+      if (isLiked) {
+        await deleteDoc(likeDocRef);
+        setIsLiked(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
+      } else {
+        await setDoc(likeDocRef, {
+          likedAt: new Date().toISOString(),
+          userId: currentUser.uid
+        });
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error("Error toggling like:", err);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
 
   if (loading) return <LoadingScreen />;
   if (!profile) return (
@@ -118,11 +174,11 @@ export function ProfilePage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6">
-        <div className="relative -mt-16 flex flex-col items-start gap-8">
+        <div className="relative -mt-16 flex flex-col sm:flex-row items-center sm:items-end gap-6 md:gap-8 text-center sm:text-left">
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="p-1 glass rounded-[2rem]"
+            className="p-1 glass rounded-[2rem] shrink-0"
           >
             <div className="w-24 h-24 md:w-32 md:h-32 rounded-[1.75rem] overflow-hidden border-4 border-accent-primary shadow-2xl">
               {profile.photoURL ? (
@@ -134,15 +190,45 @@ export function ProfilePage() {
               )}
             </div>
           </motion.div>
-          <div className="space-y-1">
+          <div className="flex flex-col items-center sm:items-start space-y-2 pb-2">
             <motion.h1 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-4xl font-black tracking-tighter uppercase italic"
+              className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase italic leading-none"
             >
               {profile.displayName}
             </motion.h1>
+            
+            {/* Likes section */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-2 mt-1 select-none"
+            >
+              <button
+                onClick={toggleLike}
+                disabled={likeLoading}
+                className={cn(
+                  "p-2 rounded-xl border transition-all flex items-center justify-center gap-2 group",
+                  isLiked 
+                    ? "bg-red-500/15 border-red-500/30 text-red-500 hover:bg-red-500/25"
+                    : "bg-white/5 border-white/10 text-text-muted hover:text-red-500 hover:bg-white/10"
+                )}
+                title={currentUser ? (isLiked ? "Unlike profile" : "Like profile") : "Sign in to like this profile"}
+              >
+                <Heart 
+                  className={cn(
+                    "w-4 h-4 transition-transform duration-300 group-hover:scale-110",
+                    isLiked ? "fill-red-500 stroke-red-500" : ""
+                  )} 
+                />
+              </button>
+              <span className="font-mono text-[10px] sm:text-xs text-text-muted font-bold tracking-widest uppercase bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5">
+                {likesCount} {likesCount === 1 ? 'LIKE' : 'LIKES'}
+              </span>
+            </motion.div>
           </div>
         </div>
 
@@ -163,7 +249,7 @@ export function ProfilePage() {
                    whileInView={{ opacity: 1, y: 0 }}
                    viewport={{ once: true }}
                    transition={{ delay: idx * 0.1, duration: 0.8 }}
-                   className="relative h-[500px] md:h-[700px] w-full rounded-[2rem] md:rounded-[3.5rem] overflow-hidden group cursor-pointer border border-border-subtle shadow-2xl"
+                   className="relative h-[500px] md:h-[700px] w-[calc(100%+3rem)] -mx-6 sm:mx-0 sm:w-full rounded-none sm:rounded-[2rem] md:rounded-[3.5rem] overflow-hidden group cursor-pointer border-y border-x-0 sm:border border-border-subtle shadow-2xl"
                    onClick={() => {
                      if (showcase.imageUrls?.length > 0) {
                         setSelectedGalleryImages(showcase.imageUrls);

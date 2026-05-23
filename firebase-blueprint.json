@@ -101,12 +101,24 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "name", "description"]
+    },
+    "Like": {
+      "title": "Profile Like",
+      "description": "Like record on a user profile",
+      "type": "object",
+      "properties": {
+        "likedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
       "description": "User profile documents"
+    },
+    "/users/{userId}/likes/{likerId}": {
+      "schema": "Like",
+      "description": "User profile likes"
     },
     "/makers/{makerId}": {
       "schema": "Maker",

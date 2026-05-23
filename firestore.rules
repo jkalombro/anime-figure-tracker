@@ -21,6 +21,11 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn() && userId == request.auth.uid;
       allow update: if isSignedIn() && userId == request.auth.uid;
+
+      match /likes/{likerId} {
+        allow read: if true;
+        allow create, delete: if isSignedIn() && likerId == request.auth.uid;
+      }
     }
 
     // Makers
