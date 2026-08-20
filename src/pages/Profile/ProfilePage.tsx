@@ -28,25 +28,36 @@ export function ProfilePage() {
       if (!userId) return;
       try {
         const userDoc = await getDoc(doc(db, 'users', userId));
+        let profileData = null;
         if (userDoc.exists()) {
-          const profileData = userDoc.data();
-          setProfile(profileData);
+          profileData = userDoc.data();
+        } else {
+          // Fallback profile data so showcases and figures are still shown if the user document is missing
+          profileData = {
+            userId: userId,
+            displayName: 'Curator',
+            photoURL: '',
+            featuredFigureIds: []
+          };
+        }
+        setProfile(profileData);
+        
+        // Fetch likes count and user liked status
+        try {
+          const likesColl = collection(db, 'users', userId, 'likes');
+          const likesSnap = await getDocs(likesColl);
+          setLikesCount(likesSnap.size);
           
-          // Fetch likes count and user liked status
-          try {
-            const likesColl = collection(db, 'users', userId, 'likes');
-            const likesSnap = await getDocs(likesColl);
-            setLikesCount(likesSnap.size);
-            
-            if (currentUser) {
-              const userLikeExists = likesSnap.docs.some(doc => doc.id === currentUser.uid);
-              setIsLiked(userLikeExists);
-            }
-          } catch (err) {
-            console.error("Error fetching likes:", err);
+          if (currentUser) {
+            const userLikeExists = likesSnap.docs.some(doc => doc.id === currentUser.uid);
+            setIsLiked(userLikeExists);
           }
+        } catch (err) {
+          console.error("Error fetching likes:", err);
+        }
 
-          // Only fetch specific featured ones if defined
+        // Fetch Featured Items
+        try {
           if (profileData.featuredFigureIds && profileData.featuredFigureIds.length > 0) {
             const figuresQuery = query(
               collection(db, 'actionFigures'),
@@ -66,20 +77,33 @@ export function ProfilePage() {
           } else {
             const figuresQuery = query(
               collection(db, 'actionFigures'), 
-              where('userId', '==', userId),
-              orderBy('createdAt', 'desc')
+              where('userId', '==', userId)
             );
             const figuresSnap = await getDocs(figuresQuery);
-            setFigures(figuresSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const fetchedFigures = figuresSnap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+            fetchedFigures.sort((a, b) => {
+              const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+              const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+              return dateB - dateA;
+            });
+            setFigures(fetchedFigures);
           }
+        } catch (err) {
+          console.error("Error fetching featured action figures:", err);
+        }
 
+        // Fetch Showcases
+        try {
           const showcasesQuery = query(
             collection(db, 'showcases'),
-            where('userId', '==', userId),
-            orderBy('priority', 'asc')
+            where('userId', '==', userId)
           );
           const showcasesSnap = await getDocs(showcasesQuery);
-          setShowcases(showcasesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          const fetchedShowcases = showcasesSnap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+          fetchedShowcases.sort((a, b) => (a.priority || 0) - (b.priority || 0));
+          setShowcases(fetchedShowcases);
+        } catch (err) {
+          console.error("Error fetching showcases:", err);
         }
       } catch (error) {
         console.error(error);

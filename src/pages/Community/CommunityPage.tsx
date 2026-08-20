@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, limit, where } from 'firebase/firestore';
 import { db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingScreen } from '../../shared/components/Loading';
@@ -15,40 +15,43 @@ export function CommunityPage() {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        // 1. Fetch all showcases to find users who have at least one
-        const showcasesSnap = await getDocs(collection(db, 'showcases'));
-        const usersWithShowcases = new Set(showcasesSnap.docs.map(doc => doc.data().userId));
-
-        // 2. Fetch users
-        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(100));
+        // 1. Fetch users
+        const q = query(collection(db, 'users'), limit(100));
         const querySnapshot = await getDocs(q);
         
-        const usersList = querySnapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          .filter((u: any) => {
-            const hasShowcases = usersWithShowcases.has(u.id);
-            const hasFeatured = u.featuredFigureIds && u.featuredFigureIds.length > 0;
-            return hasShowcases || hasFeatured;
-          });
+        const usersList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data() as any
+        }));
 
-        // 3. Fetch likes for each filtered user
-        const usersListWithLikes = await Promise.all(
+        // Sort in memory to avoid Firestore index requirements
+        usersList.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+          return dateB - dateA;
+        });
+
+        // 2. Fetch likes and showcases for each user
+        const usersListWithDetails = await Promise.all(
           usersList.map(async (u) => {
             try {
+              const showcasesQuery = query(collection(db, 'showcases'), where('userId', '==', u.id), limit(1));
+              const showcasesSnap = await getDocs(showcasesQuery);
+              const hasShowcases = !showcasesSnap.empty;
+
               const likesColl = collection(db, 'users', u.id, 'likes');
               const likesSnap = await getDocs(likesColl);
-              return { ...u, likesCount: likesSnap.size };
+              return { ...u, likesCount: likesSnap.size, hasShowcases };
             } catch (err) {
-              console.error("Error fetching likes for user", u.id, err);
-              return { ...u, likesCount: 0 };
+              console.error("Error fetching details for user", u.id, err);
+              return { ...u, likesCount: 0, hasShowcases: false };
             }
           })
         );
 
-        setUsers(usersListWithLikes);
+        // Filter to only include users who have at least one showcase
+        const filteredUsers = usersListWithDetails.filter(u => u.hasShowcases);
+        setUsers(filteredUsers);
       } catch (error) {
         console.error("Error fetching users:", error);
       } finally {
@@ -147,7 +150,7 @@ export function CommunityPage() {
                     <div className="space-y-1">
                        <p className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">Joined</p>
                        <p className="text-xs font-bold text-text-main">
-                         {user.createdAt?.toDate ? user.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                         {user.createdAt?.toDate ? user.createdAt.toDate().toLocaleDateString() : (user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A')}
                        </p>
                     </div>
                     <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">

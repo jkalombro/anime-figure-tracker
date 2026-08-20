@@ -7,7 +7,7 @@ import { uploadImage } from '../../shared/services/cloudinary';
 import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
 import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
 import { useForm } from 'react-hook-form';
-import { formatCurrency } from '../../shared/utils/utils';
+import { formatCurrency, formatDateLong, formatMonthYear } from '../../shared/utils/utils';
 import { AnimatePresence } from 'motion/react';
 import { PreorderCard } from './components/PreorderCard';
 import { PreorderModal } from './components/PreorderModal';
@@ -294,35 +294,6 @@ export function PreordersPage() {
       setReceivedStatus('Error encountered during check-in.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const formatDateLong = (dateStr: string) => {
-    if (!dateStr) return '';
-    try {
-      // Input is YYYY-MM-DD
-      const [year, month, day] = dateStr.split('-').map(Number);
-      const date = new Date(year, month - 1, day);
-      if (isNaN(date.getTime())) return dateStr;
-      
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-      return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
-  const formatMonthYear = (monthStr: string) => {
-    if (!monthStr || !monthStr.includes('-')) return monthStr;
-    try {
-      const [year, month] = monthStr.split('-').map(Number);
-      const date = new Date(year, month - 1);
-      return date.toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric'
-      });
-    } catch (e) {
-      return monthStr;
     }
   };
 

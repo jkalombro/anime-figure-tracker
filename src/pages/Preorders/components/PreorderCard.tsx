@@ -6,10 +6,10 @@ import { formatCurrency } from '../../../shared/utils/utils';
 interface PreorderCardProps {
   key?: React.Key;
   preorder: any;
-  onEdit: (preorder: any) => void;
-  onDelete: (preorder: any) => void;
-  onMarkReceived: (preorder: any) => void;
-  onViewGallery: (images: string[]) => void;
+  onEdit?: (preorder: any) => void;
+  onDelete?: (preorder: any) => void;
+  onMarkReceived?: (preorder: any) => void;
+  onViewGallery?: (images: string[]) => void;
   formatDateLong: (dateStr: string) => string;
   formatMonthYear: (monthStr: string) => string;
 }
@@ -68,12 +68,14 @@ export function PreorderCard({
               {preorder.seller}
             </p>
             {!preorder.receivedAt ? (
-              <button
-                onClick={() => onMarkReceived(preorder)}
-                className="mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-accent-primary hover:text-accent-soft transition-colors flex items-center gap-1.5 w-fit bg-accent-primary/5 px-2 py-1 rounded-lg border border-accent-primary/10 hover:border-accent-primary/30"
-              >
-                Mark as Received
-              </button>
+              onMarkReceived ? (
+                <button
+                  onClick={() => onMarkReceived(preorder)}
+                  className="mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-accent-primary hover:text-accent-soft transition-colors flex items-center gap-1.5 w-fit bg-accent-primary/5 px-2 py-1 rounded-lg border border-accent-primary/10 hover:border-accent-primary/30"
+                >
+                  Mark as Received
+                </button>
+              ) : null
             ) : (
               <span className="mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-text-muted/50 flex items-center gap-1.5 grayscale">
                 Received on {formatDateLong(preorder.receivedAt)}
@@ -117,34 +119,42 @@ export function PreorderCard({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
-        <button
-          onClick={() => {
-            if (preorder.imageUrls?.length > 0) {
-              onViewGallery(preorder.imageUrls);
-            }
-          }}
-          disabled={!preorder.imageUrls || preorder.imageUrls.length === 0}
-          className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed group"
-          title="View Gallery"
-        >
-          <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-        </button>
-        <button
-          onClick={() => onEdit(preorder)}
-          className="p-1.5 text-text-muted hover:text-accent-soft transition-colors group"
-          title="Edit"
-        >
-          <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-        </button>
-        <button
-          onClick={() => onDelete(preorder)}
-          className="p-1.5 text-text-muted hover:text-red-400 transition-colors group"
-          title="Delete"
-        >
-          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-        </button>
-      </div>
+      {(onViewGallery || onEdit || onDelete) && (
+        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-1 sm:px-4 shrink-0 sm:border-l border-border-subtle/50 self-stretch justify-center">
+          {onViewGallery && (
+            <button
+              onClick={() => {
+                if (preorder.imageUrls?.length > 0) {
+                  onViewGallery(preorder.imageUrls);
+                }
+              }}
+              disabled={!preorder.imageUrls || preorder.imageUrls.length === 0}
+              className="p-1.5 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed group"
+              title="View Gallery"
+            >
+              <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={() => onEdit(preorder)}
+              className="p-1.5 text-text-muted hover:text-accent-soft transition-colors group"
+              title="Edit"
+            >
+              <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(preorder)}
+              className="p-1.5 text-text-muted hover:text-red-400 transition-colors group"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }

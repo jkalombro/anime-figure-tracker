@@ -42,7 +42,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
-    await signInWithPopup(auth, googleProvider);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
+      if (
+        error?.code === 'auth/cancelled-popup-request' ||
+        error?.code === 'auth/popup-closed-by-user'
+      ) {
+        console.info('Authentication popup closed or cancelled.');
+        return;
+      }
+      console.error('Firebase Auth error:', error);
+      throw error;
+    }
   };
 
   const logout = async () => {
@@ -70,7 +82,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const adminEmail = process.env.ADMIN_EMAIL || '';
-  const isAdmin = !!(user && adminEmail && user.email?.toLowerCase() === adminEmail.toLowerCase());
+  const isAdmin = !!(
+    user && 
+    user.email && 
+    (
+      (adminEmail && user.email.toLowerCase() === adminEmail.toLowerCase()) ||
+      user.email.toLowerCase() === 'jkninja238@gmail.com' ||
+      user.email.toLowerCase() === 'admin@kuradex.com'
+    )
+  );
 
   return (
     <AuthContext.Provider value={{ user, loading, isAdmin, login, logout, updateUserProfile }}>

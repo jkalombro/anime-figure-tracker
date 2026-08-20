@@ -48,15 +48,23 @@ export function ShowcasePage() {
     setInitialLoading(true);
     
     // Fetch Showcases
-    const qShowcases = query(collection(db, 'showcases'), where('userId', '==', user.uid), orderBy('priority', 'asc'));
+    const qShowcases = query(collection(db, 'showcases'), where('userId', '==', user.uid));
     const unsubscribeShowcases = onSnapshot(qShowcases, (snapshot) => {
-      setShowcases(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      docs.sort((a, b) => (a.priority || 0) - (b.priority || 0));
+      setShowcases(docs);
     });
 
     // Fetch All Figures for selection
-    const qFigures = query(collection(db, 'actionFigures'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    const qFigures = query(collection(db, 'actionFigures'), where('userId', '==', user.uid));
     const unsubscribeFigures = onSnapshot(qFigures, (snapshot) => {
-      setFigures(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      docs.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        return dateB - dateA;
+      });
+      setFigures(docs);
     });
 
     // Fetch User metadata (featured IDs)
