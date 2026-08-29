@@ -46,8 +46,10 @@ export function PreordersPage() {
   const [receivedStatus, setReceivedStatus] = useState<string | undefined>(undefined);
   const [makersSuggestions, setMakersSuggestions] = useState<string[]>([]);
   const [animeSuggestions, setAnimeSuggestions] = useState<string[]>([]);
+  const [shopsSuggestions, setShopsSuggestions] = useState<string[]>([]);
   const [showMakerSuggestions, setShowMakerSuggestions] = useState(false);
   const [showAnimeSuggestions, setShowAnimeSuggestions] = useState(false);
+  const [showShopSuggestions, setShowShopSuggestions] = useState(false);
 
 
   useEffect(() => {
@@ -87,6 +89,29 @@ export function PreordersPage() {
   const watchedImages = watch('images');
   const watchedMaker = watch('maker');
   const watchedAnime = watch('sourceAnime');
+  const watchedSeller = watch('seller');
+
+  const getStoredShops = (): string[] => {
+    try {
+      const raw = localStorage.getItem('kuradex_saved_shops');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveStoredShop = (shopName: string) => {
+    if (!shopName) return;
+    try {
+      const existing = getStoredShops();
+      const clean = shopName.trim();
+      if (clean && !existing.some(s => s.toLowerCase() === clean.toLowerCase())) {
+        localStorage.setItem('kuradex_saved_shops', JSON.stringify([...existing, clean]));
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -97,18 +122,31 @@ export function PreordersPage() {
           const animeSnap = await getDocs(collection(db, 'anime'))
             .catch(err => { handleFirestoreError(err, OperationType.GET, 'anime'); throw err; });
           
-          const uniqueMakers = Array.from(new Set(makersSnap.docs.map(doc => doc.data().name.trim()))).filter(Boolean);
-          const uniqueAnime = Array.from(new Set(animeSnap.docs.map(doc => doc.data().title.trim()))).filter(Boolean);
+          let dbShops: string[] = [];
+          try {
+            const shopsSnap = await getDocs(collection(db, 'shops'));
+            dbShops = shopsSnap.docs.map(doc => doc.data().name?.trim()).filter(Boolean);
+          } catch {
+            // Silently fall back if remote collection rules are not configured yet
+          }
+          
+          const localShops = getStoredShops();
+          const existingPreorderShops = preorders.map(p => p.seller?.trim()).filter(Boolean);
+          const uniqueShops = Array.from(new Set([...localShops, ...dbShops, ...existingPreorderShops]));
+
+          const uniqueMakers = Array.from(new Set(makersSnap.docs.map(doc => doc.data().name?.trim()))).filter(Boolean);
+          const uniqueAnime = Array.from(new Set(animeSnap.docs.map(doc => doc.data().title?.trim()))).filter(Boolean);
           
           setMakersSuggestions(uniqueMakers);
           setAnimeSuggestions(uniqueAnime);
+          setShopsSuggestions(uniqueShops);
         } catch (error) {
           console.error("Error fetching suggestions:", error);
         }
       }
     };
     fetchSuggestions();
-  }, [isModalOpen]);
+  }, [isModalOpen, preorders]);
 
   useEffect(() => {
     if (watchedImages && watchedImages.length > 0) {
@@ -133,6 +171,7 @@ export function PreordersPage() {
     try {
       setShowAnimeSuggestions(false);
       setShowMakerSuggestions(false);
+      setShowShopSuggestions(false);
       const finalImageUrls: string[] = [];
       
       for (const item of imageItems) {
@@ -150,7 +189,7 @@ export function PreordersPage() {
         sourceAnime: data.sourceAnime.trim(),
         maker: data.maker.trim(),
         figureLine: data.figureLine || '',
-        seller: data.seller,
+        seller: (data.seller || '').trim(),
         datePreordered: data.datePreordered,
         estimatedArrivalFrom: data.estimatedArrivalFrom,
         estimatedArrivalTo: data.estimatedArrivalTo || null,
@@ -179,6 +218,18 @@ export function PreordersPage() {
       if (!animeExists && preorderData.sourceAnime) {
         await addDoc(collection(db, 'anime'), { title: preorderData.sourceAnime, addedBy: user.uid })
           .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'anime'); throw err; });
+      }
+
+      if (preorderData.seller) {
+        saveStoredShop(preorderData.seller);
+        const shopExists = shopsSuggestions.some(s => s.toLowerCase() === preorderData.seller.toLowerCase());
+        if (!shopExists) {
+          try {
+            await addDoc(collection(db, 'shops'), { name: preorderData.seller, addedBy: user.uid });
+          } catch {
+            // Silently fallback; shop is already safely persisted in the preorder record and localStorage
+          }
+        }
       }
 
       setIsModalOpen(false);
@@ -383,12 +434,16 @@ export function PreordersPage() {
         setImageItems={setImageItems}
         watchedAnime={watchedAnime}
         watchedMaker={watchedMaker}
+        watchedSeller={watchedSeller}
         animeSuggestions={animeSuggestions}
         makersSuggestions={makersSuggestions}
+        shopsSuggestions={shopsSuggestions}
         showAnimeSuggestions={showAnimeSuggestions}
         showMakerSuggestions={showMakerSuggestions}
+        showShopSuggestions={showShopSuggestions}
         setShowAnimeSuggestions={setShowAnimeSuggestions}
         setShowMakerSuggestions={setShowMakerSuggestions}
+        setShowShopSuggestions={setShowShopSuggestions}
       />
 
       <DeletePreorderModal

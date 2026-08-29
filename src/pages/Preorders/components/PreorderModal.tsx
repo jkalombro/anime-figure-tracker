@@ -16,12 +16,16 @@ interface PreorderModalProps {
   setImageItems: React.Dispatch<React.SetStateAction<{ url: string; file?: File }[]>>;
   watchedAnime: string;
   watchedMaker: string;
+  watchedSeller?: string;
   animeSuggestions: string[];
   makersSuggestions: string[];
+  shopsSuggestions?: string[];
   showAnimeSuggestions: boolean;
   showMakerSuggestions: boolean;
+  showShopSuggestions?: boolean;
   setShowAnimeSuggestions: (show: boolean) => void;
   setShowMakerSuggestions: (show: boolean) => void;
+  setShowShopSuggestions?: (show: boolean) => void;
 }
 
 export function PreorderModal({
@@ -35,16 +39,21 @@ export function PreorderModal({
   setImageItems,
   watchedAnime,
   watchedMaker,
+  watchedSeller = '',
   animeSuggestions,
   makersSuggestions,
+  shopsSuggestions = [],
   showAnimeSuggestions,
   showMakerSuggestions,
+  showShopSuggestions = false,
   setShowAnimeSuggestions,
   setShowMakerSuggestions,
+  setShowShopSuggestions = () => {},
 }: PreorderModalProps) {
   const { register, handleSubmit, setValue, formState: { isValid } } = formMethods;
   const [activeIndexAnime, setActiveIndexAnime] = React.useState(0);
   const [activeIndexMaker, setActiveIndexMaker] = React.useState(0);
+  const [activeIndexShop, setActiveIndexShop] = React.useState(0);
 
   const filteredAnime = animeSuggestions
     .filter(a => a.toLowerCase().includes((watchedAnime || '').toLowerCase()))
@@ -56,6 +65,11 @@ export function PreorderModal({
     .filter(m => m.toLowerCase() !== (watchedMaker || '').toLowerCase())
     .slice(0, 5);
 
+  const filteredShops = shopsSuggestions
+    .filter(s => s.toLowerCase().includes((watchedSeller || '').toLowerCase()))
+    .filter(s => s.toLowerCase() !== (watchedSeller || '').toLowerCase())
+    .slice(0, 5);
+
   React.useEffect(() => {
     setActiveIndexAnime(0);
   }, [watchedAnime]);
@@ -63,6 +77,10 @@ export function PreorderModal({
   React.useEffect(() => {
     setActiveIndexMaker(0);
   }, [watchedMaker]);
+
+  React.useEffect(() => {
+    setActiveIndexShop(0);
+  }, [watchedSeller]);
 
   return (
     <Modal
@@ -222,16 +240,61 @@ export function PreorderModal({
           </div>
 
           <div className="grid grid-cols-2 gap-6">
-            <div>
+            <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">
-                Provider
+                Provider / Shop Name
               </label>
-              <input
-                {...register('seller', { required: true })}
-                autoComplete="off"
-                className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
-                placeholder="Shop Name"
-              />
+              <div className="relative">
+                <input
+                  {...register('seller', { required: true })}
+                  autoComplete="off"
+                  onFocus={() => setShowShopSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowShopSuggestions(false), 200)}
+                  onChange={(e) => {
+                    register('seller').onChange(e);
+                    setShowShopSuggestions(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (showShopSuggestions && filteredShops.length > 0) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setActiveIndexShop(prev => (prev + 1) % filteredShops.length);
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setActiveIndexShop(prev => (prev - 1 + filteredShops.length) % filteredShops.length);
+                      } else if (e.key === 'Tab' || e.key === 'Enter') {
+                        e.preventDefault();
+                        setValue('seller', filteredShops[activeIndexShop], { shouldValidate: true });
+                        setShowShopSuggestions(false);
+                      }
+                    }
+                  }}
+                  className="w-full h-11 bg-bg-surface border border-border-subtle rounded-xl px-4 text-text-main focus:ring-1 focus:ring-accent-primary outline-none transition-all text-sm"
+                  placeholder="Shop Name"
+                />
+                {showShopSuggestions && watchedSeller && filteredShops.length > 0 && (
+                  <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl bg-opacity-95">
+                    {filteredShops.map((s, i) => (
+                      <button 
+                        key={`${s}-${i}`} 
+                        type="button" 
+                        onMouseDown={(e) => e.preventDefault()}
+                        onMouseEnter={() => setActiveIndexShop(i)}
+                        onClick={() => {
+                          setValue('seller', s, { shouldValidate: true });
+                          setShowShopSuggestions(false);
+                        }} 
+                        className={cn(
+                          "w-full text-left px-4 py-3 text-sm font-bold transition-colors",
+                          i === activeIndexShop ? "bg-accent-primary text-white" : "hover:bg-accent-primary hover:text-white"
+                        )}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">
