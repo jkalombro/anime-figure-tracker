@@ -242,7 +242,7 @@ export function PreorderModal({
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">
-                Provider / Shop Name
+                Shop Name
               </label>
               <div className="relative">
                 <input

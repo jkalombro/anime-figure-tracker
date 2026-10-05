@@ -352,9 +352,6 @@ export function OverviewPage() {
                   Total Amount to Pay: <span className="font-black text-accent-soft">{formatCurrency(totalAmountToPay)}</span>
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-text-muted font-medium uppercase tracking-wide mt-0.5">
-                Figures in transit & awaiting fulfillment
-              </p>
             </div>
           </div>
 
