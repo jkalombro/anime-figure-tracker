@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../shared/services/firebase';
 import { LoadingScreen } from '../../shared/components/Loading';
 import { useAuth } from '../../shared/context/AuthContext';
@@ -7,6 +7,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { 
   Shield, 
   Users, 
+  User,
   Package, 
   Clock, 
   ShieldCheck, 
@@ -42,20 +43,126 @@ export function AdministrationPage() {
     async function fetchAllStats() {
       try {
         setLoading(true);
-        // 1. Fetch all users
-        const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-        const usersSnap = await getDocs(usersQuery);
-        const usersList = usersSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const usersMap = new Map<string, any>();
+
+        // 1. Fetch all documents from 'users' collection
+        try {
+          const usersSnap = await getDocs(collection(db, 'users'));
+          usersSnap.docs.forEach(docSnap => {
+            const data = docSnap.data();
+            const id = docSnap.id;
+            usersMap.set(id, {
+              id,
+              userId: data.userId || id,
+              displayName: data.displayName,
+              email: data.email,
+              username: data.username,
+              photoURL: data.photoURL,
+              createdAt: data.createdAt,
+              ...data,
+            });
+          });
+        } catch (err) {
+          console.warn('Notice loading users collection in admin:', err);
+        }
+
+        // 2. Fetch all registered accounts from 'accounts' collection
+        try {
+          const accountsSnap = await getDocs(collection(db, 'accounts'));
+          accountsSnap.docs.forEach(docSnap => {
+            const acc = docSnap.data();
+            const effectiveId = acc.userId || docSnap.id;
+            if (usersMap.has(effectiveId)) {
+              const existing = usersMap.get(effectiveId);
+              usersMap.set(effectiveId, {
+                ...existing,
+                username: existing.username || acc.username,
+                email: existing.email || `${acc.username}@kuradex.internal`,
+                displayName: existing.displayName || acc.displayName || acc.displayUsername || acc.username,
+                createdAt: existing.createdAt || acc.createdAt,
+              });
+            } else {
+              usersMap.set(effectiveId, {
+                id: effectiveId,
+                userId: effectiveId,
+                username: acc.username,
+                displayName: acc.displayName || acc.displayUsername || acc.username,
+                email: `${acc.username}@kuradex.internal`,
+                photoURL: null,
+                createdAt: acc.createdAt,
+                isCustomAccount: true,
+              });
+            }
+          });
+        } catch (err) {
+          console.warn('Notice loading accounts collection in admin:', err);
+        }
+
+        // 3. Fallback: Include any registered accounts cached locally
+        try {
+          const localAccounts = JSON.parse(localStorage.getItem('kuradex_local_accounts') || '{}');
+          Object.values(localAccounts).forEach((acc: any) => {
+            if (!acc || !acc.username) return;
+            const effectiveId = acc.userId || `u_${acc.username}`;
+            if (!usersMap.has(effectiveId)) {
+              usersMap.set(effectiveId, {
+                id: effectiveId,
+                userId: effectiveId,
+                username: acc.username,
+                displayName: acc.displayName || acc.displayUsername || acc.username,
+                email: `${acc.username}@kuradex.internal`,
+                photoURL: null,
+                createdAt: acc.createdAt,
+                isCustomAccount: true,
+              });
+            }
+          });
+        } catch {
+          // ignore
+        }
+
+        // 4. Ensure current logged-in admin / Google user email is populated and saved
+        if (user?.uid) {
+          if (usersMap.has(user.uid)) {
+            const currentRecord = usersMap.get(user.uid);
+            if (!currentRecord.email && user.email) {
+              currentRecord.email = user.email;
+              // Self-heal Firestore document with user's verified Google email
+              setDoc(doc(db, 'users', user.uid), { email: user.email }, { merge: true }).catch(() => {});
+            }
+          } else {
+            usersMap.set(user.uid, {
+              id: user.uid,
+              userId: user.uid,
+              displayName: user.displayName || 'Administrator',
+              email: user.email || null,
+              photoURL: user.photoURL || null,
+              createdAt: new Date().toISOString(),
+            });
+            if (user.email) {
+              setDoc(doc(db, 'users', user.uid), {
+                userId: user.uid,
+                displayName: user.displayName || 'Administrator',
+                email: user.email,
+                photoURL: user.photoURL || null,
+              }, { merge: true }).catch(() => {});
+            }
+          }
+        }
+
+        // 5. Convert map to list and sort by registration / creation time descending
+        const usersList = Array.from(usersMap.values()).sort((a, b) => {
+          const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+          const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+          return timeB - timeA;
+        });
 
         let aggregatedFiguresCount = 0;
         let aggregatedPreordersCount = 0;
         let aggregatedEquipmentsCount = 0;
         let aggregatedValuationSum = 0;
 
-        // 2. Map through each user to fetch their statistical data
+        // 6. Map through each user to fetch their statistical data
         const usersWithStats = await Promise.all(
           usersList.map(async (u: any) => {
             try {
@@ -146,18 +253,19 @@ export function AdministrationPage() {
     }
 
     fetchAllStats();
-  }, [authLoading, isAdmin]);
+  }, [authLoading, isAdmin, user?.uid, user?.email]);
 
   if (authLoading) return <LoadingScreen />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
   if (loading) return <LoadingScreen />;
 
-  // Filter users based on search (name or email)
+  // Filter users based on search (name, email, or username)
   const filteredUsers = users.filter((u: any) => {
     const term = searchTerm.toLowerCase();
     const nameMatch = (u.displayName || '').toLowerCase().includes(term);
     const emailMatch = (u.email || '').toLowerCase().includes(term);
-    return nameMatch || emailMatch;
+    const usernameMatch = (u.username || '').toLowerCase().includes(term);
+    return nameMatch || emailMatch || usernameMatch;
   });
 
   return (
@@ -273,33 +381,54 @@ export function AdministrationPage() {
                             <img src={collector.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-text-muted bg-white/5">
-                              <Users className="w-4 h-4" />
+                              {collector.username ? <User className="w-4 h-4 text-accent-soft" /> : <Users className="w-4 h-4" />}
                             </div>
                           )}
                         </div>
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-text-main">{collector.displayName || "Anonymous"}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-text-main">{collector.displayName || collector.username || "Anonymous"}</span>
+                            {collector.username && (
+                              <span className="text-[9px] bg-accent-soft/10 text-accent-soft px-1.5 py-0.5 rounded border border-accent-soft/20 font-mono font-bold">
+                                @{collector.username}
+                              </span>
+                            )}
                             {isSuperAdmin && (
                               <span className="text-[8px] bg-accent-soft/10 text-accent-soft px-1.5 py-0.5 rounded border border-accent-soft/20 font-black tracking-widest uppercase">
                                 OWNER
                               </span>
                             )}
                           </div>
-                          <span className="text-[9px] text-text-muted font-mono block mt-0.5">ID: {collector.id.slice(0, 8)}...</span>
+                          <span className="text-[9px] text-text-muted font-mono block mt-0.5">
+                            ID: {collector.id.slice(0, 10)}...
+                          </span>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      {collector.email ? (
+                      {collector.email && !collector.email.endsWith('@kuradex.internal') ? (
                         <div className="flex flex-col gap-0.5">
                           <span className="text-text-muted font-medium flex items-center gap-1">
-                            <Mail className="w-3 h-3 shrink-0" />
+                            <Mail className="w-3 h-3 shrink-0 text-accent-primary" />
                             {collector.email}
                           </span>
                           <span className="text-[9px] text-text-muted font-medium flex items-center gap-1">
                             <Calendar className="w-3 h-3 shrink-0" />
-                            {collector.createdAt?.toDate ? collector.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                            {collector.createdAt?.toDate ? collector.createdAt.toDate().toLocaleDateString() : (collector.createdAt ? new Date(collector.createdAt).toLocaleDateString() : 'N/A')}
+                          </span>
+                        </div>
+                      ) : (collector.username || (collector.email && collector.email.endsWith('@kuradex.internal'))) ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-text-muted font-medium flex items-center gap-1">
+                            <User className="w-3 h-3 shrink-0 text-accent-soft" />
+                            @{collector.username || collector.email?.replace('@kuradex.internal', '')}
+                          </span>
+                          <span className="text-[8px] text-accent-soft/90 font-mono font-bold uppercase tracking-wider">
+                            Vault Account
+                          </span>
+                          <span className="text-[9px] text-text-muted font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3 shrink-0" />
+                            {collector.createdAt?.toDate ? collector.createdAt.toDate().toLocaleDateString() : (collector.createdAt ? new Date(collector.createdAt).toLocaleDateString() : 'N/A')}
                           </span>
                         </div>
                       ) : (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
@@ -90,6 +90,28 @@ export function PreordersPage() {
   useEffect(() => {
     if (!user) return;
     setInitialLoading(true);
+
+    if (!auth.currentUser) {
+      try {
+        const localData = JSON.parse(localStorage.getItem('kuradex_preorders_' + user.uid) || '[]');
+        const sorted = localData.sort((a: any, b: any) => {
+          const aReceived = !!a.receivedAt;
+          const bReceived = !!b.receivedAt;
+          if (aReceived !== bReceived) return aReceived ? 1 : -1;
+          const aDate = a.estimatedArrivalFrom || '9999-99';
+          const bDate = b.estimatedArrivalFrom || '9999-99';
+          if (!a.estimatedArrivalFrom && b.estimatedArrivalFrom) return 1;
+          if (a.estimatedArrivalFrom && !b.estimatedArrivalFrom) return -1;
+          return aDate.localeCompare(bDate);
+        });
+        setPreorders(sorted);
+      } catch {
+        setPreorders([]);
+      }
+      setInitialLoading(false);
+      return;
+    }
+
     const q = query(collection(db, 'preorders'), where('userId', '==', user.uid));
     return onSnapshot(
       q,
@@ -107,10 +129,16 @@ export function PreordersPage() {
             return aDate.localeCompare(bDate);
           });
         setPreorders(sorted);
+        localStorage.setItem('kuradex_preorders_' + user.uid, JSON.stringify(sorted));
         setInitialLoading(false);
       },
       (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'preorders');
+        try {
+          handleFirestoreError(error, OperationType.LIST, 'preorders');
+        } catch {
+          // Handled
+        }
+        setInitialLoading(false);
       }
     );
   }, [user]);
@@ -181,8 +209,19 @@ export function PreordersPage() {
     if (!preorderToDelete) return;
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'preorders', preorderToDelete.id))
-        .catch(err => { handleFirestoreError(err, OperationType.DELETE, `preorders/${preorderToDelete.id}`); throw err; });
+      if (auth.currentUser) {
+        await deleteDoc(doc(db, 'preorders', preorderToDelete.id))
+          .catch(err => { handleFirestoreError(err, OperationType.DELETE, `preorders/${preorderToDelete.id}`); throw err; });
+      }
+
+      setPreorders(prev => {
+        const updated = prev.filter(p => p.id !== preorderToDelete.id);
+        if (user) {
+          localStorage.setItem('kuradex_preorders_' + user.uid, JSON.stringify(updated));
+        }
+        return updated;
+      });
+
       setIsDeleteModalOpen(false);
       setPreorderToDelete(null);
     } catch (error) {
@@ -223,18 +262,32 @@ export function PreordersPage() {
         preorderPrice: data.preorderPrice !== null ? Number(data.preorderPrice) : 0,
         downpayment: data.downpayment !== null ? Number(data.downpayment) : 0,
         imageUrls: finalImageUrls,
-        createdAt: editingPreorder ? editingPreorder.createdAt : serverTimestamp(),
+        createdAt: editingPreorder ? editingPreorder.createdAt : (auth.currentUser ? serverTimestamp() : new Date().toISOString()),
       };
 
-      if (editingPreorder) {
-        await updateDoc(doc(db, 'preorders', editingPreorder.id), preorderData)
-          .catch(err => { handleFirestoreError(err, OperationType.UPDATE, `preorders/${editingPreorder.id}`); throw err; });
-      } else {
-        await addDoc(collection(db, 'preorders'), preorderData)
-          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'preorders'); throw err; });
+      if (auth.currentUser) {
+        if (editingPreorder) {
+          await updateDoc(doc(db, 'preorders', editingPreorder.id), preorderData)
+            .catch(err => { handleFirestoreError(err, OperationType.UPDATE, `preorders/${editingPreorder.id}`); throw err; });
+        } else {
+          await addDoc(collection(db, 'preorders'), preorderData)
+            .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'preorders'); throw err; });
+        }
+
+        await syncNewSuggestions(user.uid, preorderData);
       }
 
-      await syncNewSuggestions(user.uid, preorderData);
+      // Update local storage and state
+      setPreorders(prev => {
+        let updated: any[];
+        if (editingPreorder) {
+          updated = prev.map(p => p.id === editingPreorder.id ? { ...p, ...preorderData } : p);
+        } else {
+          updated = [{ id: `pre_${Date.now()}`, ...preorderData }, ...prev];
+        }
+        localStorage.setItem('kuradex_preorders_' + user.uid, JSON.stringify(updated));
+        return updated;
+      });
 
       setIsModalOpen(false);
       setEditingPreorder(null);
@@ -252,13 +305,6 @@ export function PreordersPage() {
     setLoading(true);
     setReceivedStatus('Marking preorder as received...');
     try {
-      await updateDoc(doc(db, 'preorders', preorderToMark.id), {
-        receivedAt: receivedDate,
-        updatedAt: serverTimestamp(),
-      }).catch(err => { handleFirestoreError(err, OperationType.UPDATE, `preorders/${preorderToMark.id}`); throw err; });
-
-      setReceivedStatus('Adding to Action Figure catalog...');
-
       const figureData: any = {
         userId: user.uid,
         characterName: preorderToMark.characterName || preorderToMark.figureName,
@@ -272,13 +318,45 @@ export function PreordersPage() {
         isLost: false,
         description: `Source Preorder: ${preorderToMark.seller} (${preorderToMark.datePreordered})`,
         imageUrls: preorderToMark.imageUrls || [],
-        createdAt: serverTimestamp(),
+        createdAt: auth.currentUser ? serverTimestamp() : new Date().toISOString(),
       };
 
-      await addDoc(collection(db, 'actionFigures'), figureData)
-        .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'actionFigures'); throw err; });
+      if (auth.currentUser) {
+        await updateDoc(doc(db, 'preorders', preorderToMark.id), {
+          receivedAt: receivedDate,
+          updatedAt: serverTimestamp(),
+        }).catch(err => { handleFirestoreError(err, OperationType.UPDATE, `preorders/${preorderToMark.id}`); throw err; });
 
-      await syncNewSuggestions(user.uid, { maker: figureData.maker, sourceAnime: figureData.sourceAnime });
+        setReceivedStatus('Adding to Action Figure catalog...');
+
+        await addDoc(collection(db, 'actionFigures'), figureData)
+          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'actionFigures'); throw err; });
+
+        await syncNewSuggestions(user.uid, { maker: figureData.maker, sourceAnime: figureData.sourceAnime });
+      }
+
+      // Update local storage for preorders and figures
+      try {
+        const localPreorders = JSON.parse(localStorage.getItem('kuradex_preorders_' + user.uid) || '[]');
+        const updatedPreorders = localPreorders.map((p: any) =>
+          p.id === preorderToMark.id ? { ...p, receivedAt: receivedDate } : p
+        );
+        localStorage.setItem('kuradex_preorders_' + user.uid, JSON.stringify(updatedPreorders));
+
+        const localFigures = JSON.parse(localStorage.getItem('kuradex_figures_' + user.uid) || '[]');
+        localFigures.unshift({
+          id: `fig_${Date.now()}`,
+          ...figureData,
+          createdAt: new Date().toISOString(),
+        });
+        localStorage.setItem('kuradex_figures_' + user.uid, JSON.stringify(localFigures));
+      } catch {
+        // ignore
+      }
+
+      setPreorders(prev =>
+        prev.map(p => p.id === preorderToMark.id ? { ...p, receivedAt: receivedDate } : p)
+      );
 
       setReceivedStatus('Successfully added to catalog!');
 

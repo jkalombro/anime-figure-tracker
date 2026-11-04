@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
@@ -77,15 +77,34 @@ export function ActionFiguresPage() {
   useEffect(() => {
     if (!user) return;
     setInitialLoading(true);
+
+    if (!auth.currentUser) {
+      try {
+        const localData = JSON.parse(localStorage.getItem('kuradex_figures_' + user.uid) || '[]');
+        setFigures(localData);
+      } catch {
+        setFigures([]);
+      }
+      setInitialLoading(false);
+      return;
+    }
+
     const q = query(collection(db, 'actionFigures'), where('userId', '==', user.uid));
     return onSnapshot(
       q,
       (snapshot) => {
-        setFigures(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setFigures(loaded);
+        localStorage.setItem('kuradex_figures_' + user.uid, JSON.stringify(loaded));
         setInitialLoading(false);
       },
       (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'actionFigures');
+        try {
+          handleFirestoreError(error, OperationType.LIST, 'actionFigures');
+        } catch {
+          // Handled
+        }
+        setInitialLoading(false);
       }
     );
   }, [user]);
@@ -94,24 +113,43 @@ export function ActionFiguresPage() {
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (isModalOpen) {
+        if (!auth.currentUser) {
+          try {
+            const localData = JSON.parse(localStorage.getItem('kuradex_figures_' + user?.uid) || '[]');
+            const uniqueMakers = Array.from(new Set(localData.map((f: any) => f.maker?.trim()))).filter(Boolean);
+            const uniqueAnime = Array.from(new Set(localData.map((f: any) => f.sourceAnime?.trim()))).filter(Boolean);
+            setMakersSuggestions(uniqueMakers as string[]);
+            setAnimeSuggestions(uniqueAnime as string[]);
+          } catch {
+            // fallback
+          }
+          return;
+        }
+
         try {
           const makersSnap = await getDocs(collection(db, 'makers'))
-            .catch(err => { handleFirestoreError(err, OperationType.GET, 'makers'); throw err; });
+            .catch(err => {
+              try { handleFirestoreError(err, OperationType.GET, 'makers'); } catch {}
+              return { docs: [] } as any;
+            });
           const animeSnap = await getDocs(collection(db, 'anime'))
-            .catch(err => { handleFirestoreError(err, OperationType.GET, 'anime'); throw err; });
+            .catch(err => {
+              try { handleFirestoreError(err, OperationType.GET, 'anime'); } catch {}
+              return { docs: [] } as any;
+            });
 
-          const uniqueMakers = Array.from(new Set(makersSnap.docs.map(doc => doc.data().name?.trim()))).filter(Boolean);
-          const uniqueAnime = Array.from(new Set(animeSnap.docs.map(doc => doc.data().title?.trim()))).filter(Boolean);
+          const uniqueMakers = Array.from(new Set(makersSnap.docs.map((doc: any) => doc.data().name?.trim()))).filter(Boolean);
+          const uniqueAnime = Array.from(new Set(animeSnap.docs.map((doc: any) => doc.data().title?.trim()))).filter(Boolean);
 
-          setMakersSuggestions(uniqueMakers);
-          setAnimeSuggestions(uniqueAnime);
+          setMakersSuggestions(uniqueMakers as string[]);
+          setAnimeSuggestions(uniqueAnime as string[]);
         } catch (error) {
           console.error('Error fetching suggestions:', error);
         }
       }
     };
     fetchSuggestions();
-  }, [isModalOpen]);
+  }, [isModalOpen, user?.uid]);
 
   // Form Management
   const formMethods = useForm<FigureForm>({ mode: 'onChange' });
@@ -188,8 +226,19 @@ export function ActionFiguresPage() {
     if (!figureToDelete) return;
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'actionFigures', figureToDelete.id))
-        .catch(err => { handleFirestoreError(err, OperationType.DELETE, `actionFigures/${figureToDelete.id}`); throw err; });
+      if (auth.currentUser) {
+        await deleteDoc(doc(db, 'actionFigures', figureToDelete.id))
+          .catch(err => { handleFirestoreError(err, OperationType.DELETE, `actionFigures/${figureToDelete.id}`); throw err; });
+      }
+
+      setFigures(prev => {
+        const updated = prev.filter(f => f.id !== figureToDelete.id);
+        if (user) {
+          localStorage.setItem('kuradex_figures_' + user.uid, JSON.stringify(updated));
+        }
+        return updated;
+      });
+
       setIsDeleteModalOpen(false);
       setFigureToDelete(null);
     } catch (error) {
@@ -229,29 +278,43 @@ export function ActionFiguresPage() {
         isLost: data.isLost || false,
         description: data.description || '',
         imageUrls: finalImageUrls,
-        createdAt: editingFigure ? editingFigure.createdAt : serverTimestamp(),
+        createdAt: editingFigure ? editingFigure.createdAt : (auth.currentUser ? serverTimestamp() : new Date().toISOString()),
       };
 
-      if (editingFigure) {
-        await updateDoc(doc(db, 'actionFigures', editingFigure.id), figureData)
-          .catch(err => { handleFirestoreError(err, OperationType.UPDATE, `actionFigures/${editingFigure.id}`); throw err; });
-      } else {
-        await addDoc(collection(db, 'actionFigures'), figureData)
-          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'actionFigures'); throw err; });
+      if (auth.currentUser) {
+        if (editingFigure) {
+          await updateDoc(doc(db, 'actionFigures', editingFigure.id), figureData)
+            .catch(err => { handleFirestoreError(err, OperationType.UPDATE, `actionFigures/${editingFigure.id}`); throw err; });
+        } else {
+          await addDoc(collection(db, 'actionFigures'), figureData)
+            .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'actionFigures'); throw err; });
+        }
+
+        // Sync suggestions
+        const makerExists = makersSuggestions.some(m => m.toLowerCase() === figureData.maker.toLowerCase());
+        if (!makerExists && figureData.maker) {
+          await addDoc(collection(db, 'makers'), { name: figureData.maker, addedBy: user.uid })
+            .catch(err => { try { handleFirestoreError(err, OperationType.CREATE, 'makers'); } catch {} });
+        }
+
+        const animeExists = animeSuggestions.some(a => a.toLowerCase() === figureData.sourceAnime.toLowerCase());
+        if (!animeExists && figureData.sourceAnime) {
+          await addDoc(collection(db, 'anime'), { title: figureData.sourceAnime, addedBy: user.uid })
+            .catch(err => { try { handleFirestoreError(err, OperationType.CREATE, 'anime'); } catch {} });
+        }
       }
 
-      // Sync suggestions
-      const makerExists = makersSuggestions.some(m => m.toLowerCase() === figureData.maker.toLowerCase());
-      if (!makerExists && figureData.maker) {
-        await addDoc(collection(db, 'makers'), { name: figureData.maker, addedBy: user.uid })
-          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'makers'); throw err; });
-      }
-
-      const animeExists = animeSuggestions.some(a => a.toLowerCase() === figureData.sourceAnime.toLowerCase());
-      if (!animeExists && figureData.sourceAnime) {
-        await addDoc(collection(db, 'anime'), { title: figureData.sourceAnime, addedBy: user.uid })
-          .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'anime'); throw err; });
-      }
+      // Update local figures cache
+      setFigures(prev => {
+        let updated: any[];
+        if (editingFigure) {
+          updated = prev.map(f => f.id === editingFigure.id ? { ...f, ...figureData } : f);
+        } else {
+          updated = [{ id: `fig_${Date.now()}`, ...figureData }, ...prev];
+        }
+        localStorage.setItem('kuradex_figures_' + user.uid, JSON.stringify(updated));
+        return updated;
+      });
 
       setIsModalOpen(false);
       setEditingFigure(null);

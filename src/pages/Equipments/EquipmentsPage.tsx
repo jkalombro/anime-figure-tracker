@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../shared/services/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
@@ -28,11 +28,36 @@ export function EquipmentsPage() {
   useEffect(() => {
     if (!user) return;
     setInitialLoading(true);
-    const q = query(collection(db, 'equipments'), where('userId', '==', user.uid));
-    return onSnapshot(q, (snapshot) => {
-      setEquipments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+    if (!auth.currentUser) {
+      try {
+        const localData = JSON.parse(localStorage.getItem('kuradex_equipments_' + user.uid) || '[]');
+        setEquipments(localData);
+      } catch {
+        setEquipments([]);
+      }
       setInitialLoading(false);
-    });
+      return;
+    }
+
+    const q = query(collection(db, 'equipments'), where('userId', '==', user.uid));
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setEquipments(loaded);
+        localStorage.setItem('kuradex_equipments_' + user.uid, JSON.stringify(loaded));
+        setInitialLoading(false);
+      },
+      (error) => {
+        try {
+          handleFirestoreError(error, OperationType.LIST, 'equipments');
+        } catch {
+          // Handled
+        }
+        setInitialLoading(false);
+      }
+    );
   }, [user]);
 
   const formMethods = useForm<EquipmentForm>({
@@ -48,14 +73,29 @@ export function EquipmentsPage() {
         userId: user.uid,
         description: data.description,
         totalPrice: data.totalPrice !== null ? Number(data.totalPrice) : 0,
-        createdAt: editingEquipment ? editingEquipment.createdAt : serverTimestamp(),
+        createdAt: editingEquipment ? editingEquipment.createdAt : (auth.currentUser ? serverTimestamp() : new Date().toISOString()),
       };
 
-      if (editingEquipment) {
-        await updateDoc(doc(db, 'equipments', editingEquipment.id), equipData);
-      } else {
-        await addDoc(collection(db, 'equipments'), equipData);
+      if (auth.currentUser) {
+        if (editingEquipment) {
+          await updateDoc(doc(db, 'equipments', editingEquipment.id), equipData)
+            .catch(err => { handleFirestoreError(err, OperationType.UPDATE, `equipments/${editingEquipment.id}`); throw err; });
+        } else {
+          await addDoc(collection(db, 'equipments'), equipData)
+            .catch(err => { handleFirestoreError(err, OperationType.CREATE, 'equipments'); throw err; });
+        }
       }
+
+      setEquipments(prev => {
+        let updated: any[];
+        if (editingEquipment) {
+          updated = prev.map(e => e.id === editingEquipment.id ? { ...e, ...equipData } : e);
+        } else {
+          updated = [{ id: `eq_${Date.now()}`, ...equipData }, ...prev];
+        }
+        localStorage.setItem('kuradex_equipments_' + user.uid, JSON.stringify(updated));
+        return updated;
+      });
 
       setIsModalOpen(false);
       setEditingEquipment(null);
@@ -76,7 +116,19 @@ export function EquipmentsPage() {
     if (!equipToDelete) return;
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'equipments', equipToDelete.id));
+      if (auth.currentUser) {
+        await deleteDoc(doc(db, 'equipments', equipToDelete.id))
+          .catch(err => { handleFirestoreError(err, OperationType.DELETE, `equipments/${equipToDelete.id}`); throw err; });
+      }
+
+      setEquipments(prev => {
+        const updated = prev.filter(e => e.id !== equipToDelete.id);
+        if (user) {
+          localStorage.setItem('kuradex_equipments_' + user.uid, JSON.stringify(updated));
+        }
+        return updated;
+      });
+
       setIsDeleteModalOpen(false);
       setEquipToDelete(null);
     } catch (error) {

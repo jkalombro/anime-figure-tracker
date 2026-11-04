@@ -7,10 +7,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './shared/context/AuthContext';
 import { LandingPage } from './pages/Landing/LandingPage';
+import { LoginPage } from './pages/Auth/LoginPage';
+import { RegisterPage } from './pages/Auth/RegisterPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { CommunityPage } from './pages/Community/CommunityPage';
-import { ShowcasePage } from './pages/Showcase/ShowcasePage';
 import { LoadingScreen } from './shared/components/Loading';
 import { Layout } from './Layout';
 
@@ -26,6 +27,8 @@ function AppContent() {
       <Layout>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route 
             path="/dashboard/*" 
             element={
@@ -50,4 +53,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

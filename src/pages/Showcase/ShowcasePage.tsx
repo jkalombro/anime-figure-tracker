@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp, orderBy, writeBatch } from 'firebase/firestore';
-import { db } from '../../shared/services/firebase';
+import { auth, db } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
 import { LoadingSpinner } from '../../shared/components/Loading';
 import { uploadImage } from '../../shared/services/cloudinary';
@@ -46,34 +46,68 @@ export function ShowcasePage() {
   useEffect(() => {
     if (!user) return;
     setInitialLoading(true);
+
+    if (!auth.currentUser) {
+      try {
+        const localShowcases = JSON.parse(localStorage.getItem('kuradex_showcases_' + user.uid) || '[]');
+        setShowcases(localShowcases);
+        const localFigures = JSON.parse(localStorage.getItem('kuradex_figures_' + user.uid) || '[]');
+        setFigures(localFigures);
+      } catch {
+        setShowcases([]);
+        setFigures([]);
+      }
+      setInitialLoading(false);
+      return;
+    }
     
     // Fetch Showcases
     const qShowcases = query(collection(db, 'showcases'), where('userId', '==', user.uid));
-    const unsubscribeShowcases = onSnapshot(qShowcases, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
-      docs.sort((a, b) => (a.priority || 0) - (b.priority || 0));
-      setShowcases(docs);
-    });
+    const unsubscribeShowcases = onSnapshot(
+      qShowcases,
+      (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+        docs.sort((a, b) => (a.priority || 0) - (b.priority || 0));
+        setShowcases(docs);
+        localStorage.setItem('kuradex_showcases_' + user.uid, JSON.stringify(docs));
+      },
+      () => {
+        // Safe catch
+      }
+    );
 
     // Fetch All Figures for selection
     const qFigures = query(collection(db, 'actionFigures'), where('userId', '==', user.uid));
-    const unsubscribeFigures = onSnapshot(qFigures, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
-      docs.sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-        return dateB - dateA;
-      });
-      setFigures(docs);
-    });
+    const unsubscribeFigures = onSnapshot(
+      qFigures,
+      (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+        docs.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+          return dateB - dateA;
+        });
+        setFigures(docs);
+        localStorage.setItem('kuradex_figures_' + user.uid, JSON.stringify(docs));
+      },
+      () => {
+        // Safe catch
+      }
+    );
 
     // Fetch User metadata (featured IDs)
-    const unsubscribeUser = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) {
-        setFeaturedFigureIds(doc.data().featuredFigureIds || []);
+    const unsubscribeUser = onSnapshot(
+      doc(db, 'users', user.uid),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setFeaturedFigureIds(docSnap.data().featuredFigureIds || []);
+        }
+        setInitialLoading(false);
+      },
+      () => {
+        setInitialLoading(false);
       }
-      setInitialLoading(false);
-    });
+    );
 
     return () => {
       unsubscribeShowcases();

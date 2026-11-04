@@ -1,5 +1,20 @@
 {
   "entities": {
+    "Account": {
+      "title": "Account",
+      "description": "User credential document for username and encrypted password authentication",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "displayUsername": { "type": "string" },
+        "displayName": { "type": "string" },
+        "userId": { "type": "string" },
+        "salt": { "type": "string" },
+        "passwordHash": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["username", "displayName", "userId", "salt", "passwordHash"]
+    },
     "User": {
       "title": "User",
       "description": "User profile and metadata",
@@ -7,6 +22,8 @@
       "properties": {
         "userId": { "type": "string" },
         "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string" },
         "photoURL": { "type": "string" },
         "featuredFigureIds": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -112,6 +129,10 @@
     }
   },
   "firestore": {
+    "/accounts/{username}": {
+      "schema": "Account",
+      "description": "Credentials storage for custom username/password auth"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "User profile documents"

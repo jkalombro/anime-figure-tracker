@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, Sparkles, Book, Box, LayoutDashboard } from 'lucide-react';
 
 export function LandingPage() {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
 
@@ -166,8 +166,8 @@ export function LandingPage() {
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.2)" }}
             whileTap={{ scale: 0.95 }}
-            onClick={login}
-            className="w-full sm:w-auto px-6 py-3 sm:px-12 sm:py-5 bg-accent-primary text-white rounded-2xl font-black text-base sm:text-xl flex items-center justify-center gap-2 sm:gap-4 transition-all shadow-xl shadow-accent-primary/10 group"
+            onClick={() => navigate('/login')}
+            className="w-full sm:w-auto px-6 py-3 sm:px-12 sm:py-5 bg-accent-primary text-white rounded-2xl font-black text-base sm:text-xl flex items-center justify-center gap-2 sm:gap-4 transition-all shadow-xl shadow-accent-primary/10 group cursor-pointer"
           >
             <LogIn className="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform" />
             ENTER GALLERY
