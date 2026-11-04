@@ -48,3 +48,12 @@ export function formatMonthYear(monthStr: string) {
     return monthStr;
   }
 }
+
+export function abbreviateMaker(maker: string): string {
+  if (!maker) return '';
+  const words = maker.trim().split(/\s+/);
+  if (words.length > 1) {
+    return words.map(word => word[0].toUpperCase()).join('');
+  }
+  return maker;
+}

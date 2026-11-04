@@ -1,79 +1,113 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Edit2, Trash2, Image as ImageIcon, Gift } from 'lucide-react';
-import { formatCurrency } from '../../../shared/utils/utils';
+import { formatCurrency, abbreviateMaker as defaultAbbreviateMaker } from '../../../shared/utils/utils';
 
-interface FigureCardProps {
-  key?: React.Key;
-  figure: any;
-  onEdit: (figure: any) => void;
-  onDelete: (figure: any) => void;
-  onViewGallery: (images: string[]) => void;
-  abbreviateMaker: (maker: string) => string;
+export interface FigureItem {
+  id: string;
+  characterName: string;
+  maker: string;
+  figureLine?: string;
+  totalPrice?: number | null;
+  condition?: 'MSIB' | 'MIB' | 'BIB' | 'LOOSE' | 'PRE-ORDERED' | string;
+  sourceAnime: string;
+  isGifted?: boolean;
+  isSold?: boolean;
+  isLost?: boolean;
+  description?: string;
+  imageUrls?: string[];
+  createdAt?: any;
+  [key: string]: any;
 }
 
-export function FigureCard({ figure, onEdit, onDelete, onViewGallery, abbreviateMaker }: FigureCardProps) {
+export interface FigureCardProps {
+  key?: React.Key;
+  figure: FigureItem;
+  onEdit?: (figure: FigureItem) => void;
+  onDelete?: (figure: FigureItem) => void;
+  onViewGallery?: (images: string[]) => void;
+  abbreviateMaker?: (maker: string) => string;
+}
+
+export function FigureCard({
+  figure,
+  onEdit,
+  onDelete,
+  onViewGallery,
+  abbreviateMaker = defaultAbbreviateMaker,
+}: FigureCardProps) {
+  const hasImages = figure.imageUrls && figure.imageUrls.length > 0;
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="card-sophisticated p-4 sm:px-6 sm:py-4 relative overflow-hidden"
+      className="card-sophisticated p-4 sm:px-6 sm:py-4 relative overflow-hidden group/card hover:border-accent-primary/40 transition-colors"
     >
       <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_180px_150px] gap-x-4 sm:gap-x-12 gap-y-3 sm:gap-y-1 items-center">
         {/* Figure Info Column - Row 1, Col 1 on Mobile. Row 1-2, Col 1 on Desktop */}
         <div className="min-w-0 sm:row-span-2 space-y-0">
           <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0 leading-tight">
-            <h3 className="font-bold text-text-main text-sm sm:text-base tracking-tight">
+            <h3 className="font-bold text-text-main text-sm sm:text-base tracking-tight truncate max-w-full">
               {figure.characterName}
             </h3>
             <span className="text-text-muted/30 font-normal shrink-0">•</span>
-            <span className="text-text-muted uppercase text-[9px] sm:text-[10px] font-black tracking-widest shrink-0" title={figure.maker}>
+            <span
+              className="text-text-muted uppercase text-[9px] sm:text-[10px] font-black tracking-widest shrink-0"
+              title={figure.maker}
+            >
               {abbreviateMaker(figure.maker)}
             </span>
             {figure.figureLine && (
               <>
                 <span className="text-text-muted/30 font-normal shrink-0">•</span>
-                <span className="text-accent-soft font-bold text-[10px] sm:text-xs">
+                <span className="text-accent-soft font-bold text-[10px] sm:text-xs shrink-0">
                   {figure.figureLine}
                 </span>
               </>
             )}
           </div>
-          <p className="text-[11px] sm:text-xs text-text-muted italic leading-tight mt-0.5">
+          <p className="text-[11px] sm:text-xs text-text-muted italic leading-tight mt-0.5 truncate">
             {figure.sourceAnime}
           </p>
         </div>
 
         {/* Action Icons Column - Row 1, Col 2 on Mobile. Row 1-2, Col 3 on Desktop */}
         <div className="flex sm:flex-row items-center justify-end sm:justify-center gap-0.5 sm:gap-2 sm:row-span-2 sm:col-start-3 sm:border-l border-border-subtle/50 sm:pl-8 sm:py-1 self-stretch">
-          <button
-            onClick={() => {
-              if (figure.imageUrls?.length > 0) {
-                onViewGallery(figure.imageUrls);
-              }
-            }}
-            disabled={!figure.imageUrls || figure.imageUrls.length === 0}
-            className="p-1 sm:p-1 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed group"
-            title="View Gallery"
-          >
-            <ImageIcon className="w-5 h-5 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-          </button>
-          <button
-            onClick={() => onEdit(figure)}
-            className="p-1 sm:p-1 text-text-muted hover:text-accent-soft transition-colors group"
-            title="Edit"
-          >
-            <Edit2 className="w-5 h-5 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-          </button>
-          <button
-            onClick={() => onDelete(figure)}
-            className="p-1 sm:p-1 text-text-muted hover:text-red-400 transition-colors group"
-            title="Delete"
-          >
-            <Trash2 className="w-5 h-5 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-          </button>
+          {onViewGallery && (
+            <button
+              onClick={() => {
+                if (hasImages && figure.imageUrls) {
+                  onViewGallery(figure.imageUrls);
+                }
+              }}
+              disabled={!hasImages}
+              className="p-1 sm:p-1 text-text-muted hover:text-accent-primary transition-colors disabled:opacity-10 disabled:cursor-not-allowed group/btn"
+              title="View Gallery"
+            >
+              <ImageIcon className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={() => onEdit(figure)}
+              className="p-1 sm:p-1 text-text-muted hover:text-accent-soft transition-colors group/btn"
+              title="Edit"
+            >
+              <Edit2 className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(figure)}
+              className="p-1 sm:p-1 text-text-muted hover:text-red-400 transition-colors group/btn"
+              title="Delete"
+            >
+              <Trash2 className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+            </button>
+          )}
         </div>
 
         {/* Tags Column - Row 2, Col 1 on Mobile. Row 1, Col 2 on Desktop */}
@@ -106,7 +140,7 @@ export function FigureCard({ figure, onEdit, onDelete, onViewGallery, abbreviate
         <div className="flex justify-end items-center sm:col-start-2 sm:row-start-2">
           <div className="flex justify-between items-center w-full gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">
             <span className="text-text-muted/40 font-black">Price:</span>
-            <span className="text-text-main font-black tabular-nums">{formatCurrency(figure.totalPrice)}</span>
+            <span className="text-text-main font-black tabular-nums">{formatCurrency(figure.totalPrice || 0)}</span>
           </div>
         </div>
       </div>
