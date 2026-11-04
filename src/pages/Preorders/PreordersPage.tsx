@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../shared/services/firebase';
 import { useAuth } from '../../shared/context/AuthContext';
@@ -7,12 +7,17 @@ import { uploadImage } from '../../shared/services/cloudinary';
 import { AddItemButton } from '../../shared/components/AddItemButton.tsx';
 import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
 import { useForm } from 'react-hook-form';
-import { formatCurrency, formatDateLong, formatMonthYear } from '../../shared/utils/utils';
+import { formatCurrency, formatDateLong, formatMonthYear, cn } from '../../shared/utils/utils';
 import { AnimatePresence } from 'motion/react';
+import { Search, ChevronDown, X, ArrowUp, ArrowDown, ListFilter, Clock, CheckCircle2 } from 'lucide-react';
 import { PreorderCard } from './components/PreorderCard';
 import { PreorderModal } from './components/PreorderModal';
 import { DeletePreorderModal } from './components/DeletePreorderModal';
 import { MarkReceivedModal } from './components/MarkReceivedModal';
+
+type FilterType = 'pending' | 'completed';
+type PreorderSortField = 'arrivalDate' | 'shop' | 'price' | 'sourceSeries';
+type SortOrder = 'asc' | 'desc';
 
 interface PreorderForm {
   characterName: string;
@@ -47,9 +52,89 @@ export function PreordersPage() {
   const [makersSuggestions, setMakersSuggestions] = useState<string[]>([]);
   const [animeSuggestions, setAnimeSuggestions] = useState<string[]>([]);
   const [shopsSuggestions, setShopsSuggestions] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('pending');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<PreorderSortField>('arrivalDate');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [showSortControls, setShowSortControls] = useState(false);
   const [showMakerSuggestions, setShowMakerSuggestions] = useState(false);
   const [showAnimeSuggestions, setShowAnimeSuggestions] = useState(false);
   const [showShopSuggestions, setShowShopSuggestions] = useState(false);
+
+  const pendingPreorders = useMemo(() => {
+    return preorders.filter(p => !p.receivedAt);
+  }, [preorders]);
+
+  const completedPreorders = useMemo(() => {
+    return preorders.filter(p => !!p.receivedAt);
+  }, [preorders]);
+
+  const pendingAmountToPay = useMemo(() => {
+    return pendingPreorders.reduce((sum, p) => {
+      const price = Number(p.preorderPrice) || 0;
+      const dp = Number(p.downpayment) || 0;
+      return sum + (price - dp);
+    }, 0);
+  }, [pendingPreorders]);
+
+  const completedTotalCost = useMemo(() => {
+    return completedPreorders.reduce((sum, p) => {
+      const price = Number(p.preorderPrice) || 0;
+      return sum + price;
+    }, 0);
+  }, [completedPreorders]);
+
+  const displayedPreorders = useMemo(() => {
+    const base = activeFilter === 'pending' ? pendingPreorders : completedPreorders;
+    const searchLower = searchQuery.toLowerCase().trim();
+
+    return base
+      .filter((p) => {
+        if (!searchLower) return true;
+        const character = (p.characterName || p.figureName || '').toLowerCase();
+        const series = (p.sourceAnime || '').toLowerCase();
+        const maker = (p.maker || '').toLowerCase();
+        const shop = (p.seller || '').toLowerCase();
+        const line = (p.figureLine || '').toLowerCase();
+        return (
+          character.includes(searchLower) ||
+          series.includes(searchLower) ||
+          maker.includes(searchLower) ||
+          shop.includes(searchLower) ||
+          line.includes(searchLower)
+        );
+      })
+      .sort((a, b) => {
+        if (sortField === 'arrivalDate') {
+          const aDate = a.estimatedArrivalFrom || a.estimatedArrival || (a.receivedAt ? a.receivedAt.substring(0, 7) : '');
+          const bDate = b.estimatedArrivalFrom || b.estimatedArrival || (b.receivedAt ? b.receivedAt.substring(0, 7) : '');
+          if (!aDate && bDate) return 1;
+          if (aDate && !bDate) return -1;
+          if (!aDate && !bDate) return 0;
+          return sortOrder === 'asc' ? aDate.localeCompare(bDate) : bDate.localeCompare(aDate);
+        }
+        if (sortField === 'shop') {
+          const aShop = (a.seller || '').toLowerCase();
+          const bShop = (b.seller || '').toLowerCase();
+          if (aShop < bShop) return sortOrder === 'asc' ? -1 : 1;
+          if (aShop > bShop) return sortOrder === 'asc' ? 1 : -1;
+          return 0;
+        }
+        if (sortField === 'price') {
+          const aPrice = Number(a.preorderPrice) || 0;
+          const bPrice = Number(b.preorderPrice) || 0;
+          return sortOrder === 'asc' ? aPrice - bPrice : bPrice - aPrice;
+        }
+        if (sortField === 'sourceSeries') {
+          const aSeries = (a.sourceAnime || '').toLowerCase();
+          const bSeries = (b.sourceAnime || '').toLowerCase();
+          if (aSeries < bSeries) return sortOrder === 'asc' ? -1 : 1;
+          if (aSeries > bSeries) return sortOrder === 'asc' ? 1 : -1;
+          return 0;
+        }
+        return 0;
+      });
+  }, [activeFilter, pendingPreorders, completedPreorders, searchQuery, sortField, sortOrder]);
 
 
   useEffect(() => {
@@ -349,8 +434,8 @@ export function PreordersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex sticky top-[56px] md:top-0 z-30 bg-bg-deep/80 backdrop-blur-md py-4 justify-between items-end mb-8 transition-all">
+    <div className="space-y-4">
+      <div className="flex sticky top-[56px] md:top-0 z-30 bg-bg-deep/80 backdrop-blur-md py-4 justify-between items-end mb-4 transition-all">
         <div>
           <h2 className="text-lg sm:text-2xl font-black text-text-main uppercase tracking-tighter italic">Preorders</h2>
           <p className="text-text-muted text-[10px] sm:text-xs mt-1 uppercase tracking-widest font-bold">Pipeline Track</p>
@@ -377,6 +462,135 @@ export function PreordersPage() {
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        {[
+          { 
+            id: 'pending' as const, 
+            label: "Pending Preorders", 
+            mobileLabel: "Pending",
+            value: pendingAmountToPay, 
+            count: pendingPreorders.length, 
+            amountLabel: "amount to pay",
+            icon: Clock, 
+            activeColor: "bg-emerald-500/15",
+            activeBorder: "border-emerald-500", 
+            hoverBorder: "hover:border-accent-primary/50" 
+          },
+          { 
+            id: 'completed' as const, 
+            label: "Completed Preorders", 
+            mobileLabel: "Completed",
+            value: completedTotalCost, 
+            count: completedPreorders.length, 
+            amountLabel: "amount paid",
+            icon: CheckCircle2, 
+            activeColor: "bg-emerald-500/15",
+            activeBorder: "border-emerald-500", 
+            hoverBorder: "hover:border-emerald-500/50" 
+          }
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveFilter(item.id)}
+            className={cn(
+              "card-sophisticated p-2 sm:p-4 transition-all text-left group border-2 h-full flex flex-col justify-between",
+              activeFilter === item.id 
+                ? `${item.activeColor} ${item.activeBorder} shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02]` 
+                : `bg-bg-surface border-transparent ${item.hoverBorder}`
+            )}
+          >
+            <div>
+              <div className={cn(
+                "text-[7px] sm:text-[9px] uppercase font-black tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-1 sm:gap-2 mb-2 sm:mb-3",
+                activeFilter === item.id ? "text-emerald-600 dark:text-emerald-400" : "text-text-muted"
+              )}>
+                <div className={cn(
+                  "w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg flex items-center justify-center transition-all",
+                  activeFilter === item.id ? "bg-emerald-500 text-white" : "bg-accent-primary/5 text-accent-primary group-hover:bg-accent-primary group-hover:text-white"
+                )}>
+                  <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                </div>
+                <span className="truncate">
+                  <span className="sm:hidden">{item.mobileLabel}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
+                </span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-1">
+                <p className={cn(
+                  "text-[10px] sm:text-lg lg:text-xl font-black tracking-tighter truncate",
+                  activeFilter === item.id ? "text-text-main" : "text-text-main"
+                )}>
+                  {item.count} {item.count === 1 ? 'item' : 'items'}
+                </p>
+              </div>
+            </div>
+            
+            <p className={cn(
+              "text-[7px] sm:text-[10px] font-bold tracking-tight sm:tracking-wider mt-2 opacity-70 truncate",
+              activeFilter === item.id ? "text-text-muted" : "text-text-muted"
+            )}>
+              <span className="font-extrabold text-text-main">{formatCurrency(item.value)}</span>{' '}
+              <span>{item.amountLabel}</span>
+            </p>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search characters, series, shops..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl pl-11 pr-4 text-sm focus:ring-1 focus:ring-accent-primary outline-none transition-all"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-bg-deep rounded-full transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-text-muted" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowSortControls(!showSortControls)}
+            className="md:hidden h-12 w-12 flex items-center justify-center bg-bg-surface border border-border-subtle rounded-2xl text-text-muted hover:text-accent-primary transition-colors shrink-0"
+          >
+            <ListFilter className={cn("w-5 h-5 transition-transform", showSortControls && "rotate-180")} />
+          </button>
+        </div>
+        <div className={cn(
+          "flex items-center gap-2 w-full md:w-auto transition-all overflow-hidden",
+          !showSortControls && "max-md:h-0 max-md:opacity-0 max-md:pointer-events-none"
+        )}>
+          <div className="relative flex-1 md:w-48">
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as PreorderSortField)}
+              className="w-full h-12 bg-bg-surface border border-border-subtle rounded-2xl px-4 text-sm focus:ring-1 focus:ring-accent-primary outline-none appearance-none cursor-pointer pr-10 font-bold"
+            >
+              <option value="arrivalDate">Arrival Date</option>
+              <option value="shop">Shop</option>
+              <option value="price">Price</option>
+              <option value="sourceSeries">Source Series</option>
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+          </div>
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="h-12 w-12 flex items-center justify-center bg-bg-surface border border-border-subtle rounded-2xl text-text-muted hover:text-accent-primary transition-colors shrink-0"
+            title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+          >
+            {sortOrder === 'asc' ? <ArrowUp className="w-4 h-4 text-accent-primary" /> : <ArrowDown className="w-4 h-4 text-accent-primary" />}
+          </button>
+        </div>
+      </div>
+
       <div className="space-y-4">
         {initialLoading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-4 text-text-muted">
@@ -385,7 +599,7 @@ export function PreordersPage() {
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
-            {preorders.map((preorder) => (
+            {displayedPreorders.map((preorder) => (
               <PreorderCard
                 key={preorder.id}
                 preorder={preorder}
@@ -408,9 +622,13 @@ export function PreordersPage() {
         )}
       </div>
 
-      {!initialLoading && preorders.length === 0 && (
+      {!initialLoading && displayedPreorders.length === 0 && (
         <div className="py-20 text-center text-text-muted italic opacity-50 surface-container">
-          No preorders currently in the pipeline.
+          {searchQuery
+            ? `No preorders found matching "${searchQuery}".`
+            : activeFilter === 'pending'
+              ? 'No pending preorders currently in the pipeline.'
+              : 'No completed preorders recorded yet.'}
         </div>
       )}
 
