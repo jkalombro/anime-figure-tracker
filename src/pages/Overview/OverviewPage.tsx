@@ -8,12 +8,13 @@ import { FullscreenGallery } from '../../shared/components/FullscreenGallery';
 
 // Subcomponents
 import { OverviewMetrics } from './components/OverviewMetrics';
-import { ShowcaseBanner } from './components/ShowcaseBanner';
+import { CollectionSeriesStats } from './components/CollectionSeriesStats';
 import { OverviewPendingPreorders } from './components/OverviewPendingPreorders';
 
 export function OverviewPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [figures, setFigures] = useState<any[]>([]);
   const [unreceivedPreorders, setUnreceivedPreorders] = useState<any[]>([]);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[] | null>(null);
 
@@ -79,6 +80,7 @@ export function OverviewPage() {
           equipment: localEquipment.length,
           equipmentCost: eqCost,
         });
+        setFigures(localFigures);
         setUnreceivedPreorders(activePreorders);
       } catch {
         // fallback
@@ -109,6 +111,7 @@ export function OverviewPage() {
         let giftedValue = 0;
         const loadedFigures = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
         localStorage.setItem('kuradex_figures_' + user.uid, JSON.stringify(loadedFigures));
+        setFigures(loadedFigures);
 
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
@@ -314,6 +317,7 @@ export function OverviewPage() {
           createdAt: new Date().toISOString(),
         });
         localStorage.setItem('kuradex_figures_' + user.uid, JSON.stringify(localFigures));
+        setFigures(localFigures);
 
         // Update local state if not streaming from Firestore
         if (!auth.currentUser) {
@@ -382,8 +386,8 @@ export function OverviewPage() {
         equipmentCount={stats.equipment}
       />
 
-      {/* Public Showcase Banner */}
-      <ShowcaseBanner userId={user?.uid} />
+      {/* Collection Statistics Grouped by Anime / Source Series */}
+      <CollectionSeriesStats figures={figures} loading={loading} />
 
       {/* Pending Preorders Section */}
       <OverviewPendingPreorders
