@@ -24,11 +24,11 @@ export function PreorderStatsCards({
   const cards = [
     {
       id: 'pending' as const,
-      label: 'Pending Preorders',
-      mobileLabel: 'Pending',
+      label: 'PENDING PREORDERS',
+      mobileLabel: 'PENDING',
       value: pendingAmountToPay,
       count: pendingCount,
-      amountLabel: 'amount to pay',
+      centerLabel: 'TO PAY',
       icon: Clock,
       activeColor: 'bg-emerald-500/15',
       activeBorder: 'border-emerald-500',
@@ -36,11 +36,11 @@ export function PreorderStatsCards({
     },
     {
       id: 'completed' as const,
-      label: 'Completed Preorders',
-      mobileLabel: 'Completed',
+      label: 'COMPLETED PREORDERS',
+      mobileLabel: 'COMPLETED',
       value: completedTotalCost,
       count: completedCount,
-      amountLabel: 'amount paid',
+      centerLabel: 'PAID',
       icon: CheckCircle2,
       activeColor: 'bg-emerald-500/15',
       activeBorder: 'border-emerald-500',
@@ -57,7 +57,7 @@ export function PreorderStatsCards({
             key={item.id}
             onClick={() => onFilterChange(item.id)}
             className={cn(
-              'card-sophisticated p-2 sm:p-4 transition-all text-left group border-2 h-full flex flex-col justify-between',
+              'card-sophisticated p-2 sm:p-4 transition-all text-left group border-2 h-full flex flex-col justify-between uppercase',
               isSelected
                 ? `${item.activeColor} ${item.activeBorder} shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02]`
                 : `bg-bg-surface border-transparent ${item.hoverBorder}`
@@ -80,22 +80,24 @@ export function PreorderStatsCards({
                 >
                   <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 </div>
-                <span className="truncate">
+                <span className="truncate uppercase">
                   <span className="sm:hidden">{item.mobileLabel}</span>
                   <span className="hidden sm:inline">{item.label}</span>
                 </span>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-1">
-                <p className="text-[10px] sm:text-lg lg:text-xl font-black tracking-tighter truncate text-text-main">
-                  {item.count} {item.count === 1 ? 'item' : 'items'}
+                <p className="text-[10px] sm:text-base md:text-lg lg:text-xl font-black tracking-tighter truncate text-text-main uppercase">
+                  <span>{formatCurrency(item.value)}</span>
+                  <span className="ml-1.5 sm:ml-2.5 text-[8px] sm:text-xs md:text-sm font-extrabold opacity-75 uppercase">
+                    {item.centerLabel}
+                  </span>
                 </p>
               </div>
             </div>
 
-            <p className="text-[7px] sm:text-[10px] font-bold tracking-tight sm:tracking-wider mt-2 opacity-70 truncate text-text-muted">
-              <span className="font-extrabold text-text-main">{formatCurrency(item.value)}</span>{' '}
-              <span>{item.amountLabel}</span>
+            <p className="text-[7px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wider mt-2 opacity-70 truncate text-text-muted">
+              {item.count} {item.count === 1 ? 'ITEM' : 'ITEMS'}
             </p>
           </button>
         );
